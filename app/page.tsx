@@ -1,40 +1,26 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import NewsFeed from "@/components/news-feed"
+import Navbar from "@/components/navbar"
 import Sidebar from "@/components/sidebar"
 import RightSidebar from "@/components/right-sidebar"
+import NewsFeed from "@/components/news-feed"
 
 export default function Home() {
   return (
-    <div className="flex flex-col md:flex-row gap-4 px-4 py-6">
-      <Sidebar className="hidden md:block w-[240px] lg:w-[280px] shrink-0" />
-
-      <div className="flex-1 max-w-3xl mx-auto w-full">
-        <Tabs defaultValue="foryou" className="mb-6">
-          <TabsList className="w-full">
-            <TabsTrigger value="foryou" className="flex-1">
-              For You
-            </TabsTrigger>
-            <TabsTrigger value="friends" className="flex-1">
-              Friends
-            </TabsTrigger>
-            <TabsTrigger value="groups" className="flex-1">
-              Groups
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="foryou">
+    <>
+      <Navbar />
+      <div className="container mx-auto max-w-7xl pt-16">
+        <div className="flex flex-col md:flex-row gap-4 p-4">
+          <div className="hidden md:block md:w-1/4 lg:w-1/5">
+            <Sidebar className="sticky top-20" />
+          </div>
+          <main className="flex-1 md:w-2/4 lg:w-3/5">
             <NewsFeed />
-          </TabsContent>
-          <TabsContent value="friends">
-            <NewsFeed filter="friends" />
-          </TabsContent>
-          <TabsContent value="groups">
-            <NewsFeed filter="groups" />
-          </TabsContent>
-        </Tabs>
+          </main>
+          <div className="hidden lg:block lg:w-1/5">
+            <RightSidebar className="sticky top-20" />
+          </div>
+        </div>
       </div>
-
-      <RightSidebar className="hidden lg:block w-[280px] shrink-0" />
-    </div>
+    </>
   )
 }
 

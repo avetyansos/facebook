@@ -1,245 +1,366 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, UserPlus, X } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Search, Check, X } from "lucide-react"
+import Navbar from "@/components/navbar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { useToast } from "@/components/ui/use-toast"
+
+interface Friend {
+  id: number
+  name: string
+  mutualFriends: number
+  isFriend: boolean
+  avatar?: string
+}
 
 export default function FriendsPage() {
-  return (
-    <div className="container py-6">
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="md:w-1/4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Friends</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="border-b">
-                <div className="relative p-3">
-                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search Friends"
-                    className="pl-8 h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
-                  />
-                </div>
-              </div>
-              <nav className="space-y-1 p-3">
-                <a href="#" className="flex items-center gap-3 rounded-md bg-muted p-2 font-medium">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                    />
-                  </svg>
-                  <span>Home</span>
-                </a>
-                <a href="#" className="flex items-center gap-3 rounded-md p-2 text-muted-foreground hover:bg-muted">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                    />
-                  </svg>
-                  <span>Friend Requests</span>
-                </a>
-                <a href="#" className="flex items-center gap-3 rounded-md p-2 text-muted-foreground hover:bg-muted">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
-                  </svg>
-                  <span>All Friends</span>
-                </a>
-                <a href="#" className="flex items-center gap-3 rounded-md p-2 text-muted-foreground hover:bg-muted">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <span>Birthdays</span>
-                </a>
-                <a href="#" className="flex items-center gap-3 rounded-md p-2 text-muted-foreground hover:bg-muted">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span>Recently Active</span>
-                </a>
-              </nav>
-            </CardContent>
-          </Card>
-        </div>
+  const [searchQuery, setSearchQuery] = useState("")
+  const [friends, setFriends] = useState<Friend[]>([
+    { id: 1, name: "Sarah Johnson", mutualFriends: 5, isFriend: true, avatar: "/placeholder.svg?height=100&width=100" },
+    { id: 2, name: "Michael Brown", mutualFriends: 3, isFriend: true, avatar: "/placeholder.svg?height=100&width=100" },
+    { id: 3, name: "Emily Smith", mutualFriends: 7, isFriend: true, avatar: "/placeholder.svg?height=100&width=100" },
+    { id: 4, name: "David Wilson", mutualFriends: 2, isFriend: false, avatar: "/placeholder.svg?height=100&width=100" },
+    {
+      id: 5,
+      name: "Jessica Taylor",
+      mutualFriends: 9,
+      isFriend: false,
+      avatar: "/placeholder.svg?height=100&width=100",
+    },
+    {
+      id: 6,
+      name: "Robert Miller",
+      mutualFriends: 4,
+      isFriend: false,
+      avatar: "/placeholder.svg?height=100&width=100",
+    },
+  ])
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [unfriendDialogOpen, setUnfriendDialogOpen] = useState(false)
+  const [selectedFriend, setSelectedFriend] = useState<number | null>(null)
+  const { toast } = useToast()
 
-        <div className="md:w-3/4">
-          <Tabs defaultValue="suggestions">
-            <TabsList className="w-full">
-              <TabsTrigger value="suggestions" className="flex-1">
-                Suggestions
-              </TabsTrigger>
-              <TabsTrigger value="requests" className="flex-1">
-                Friend Requests
-              </TabsTrigger>
-              <TabsTrigger value="all" className="flex-1">
-                All Friends
-              </TabsTrigger>
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      toast({
+        title: "Search Not Available",
+        description: "The search functionality is not implemented in this version.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleAddFriend = (id: number) => {
+    setSelectedFriend(id)
+    setConfirmDialogOpen(true)
+  }
+
+  const handleDeleteRequest = (id: number) => {
+    setSelectedFriend(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleUnfriend = (id: number) => {
+    setSelectedFriend(id)
+    setUnfriendDialogOpen(true)
+  }
+
+  const confirmAddFriend = () => {
+    if (selectedFriend !== null) {
+      const friendName = friends.find((f) => f.id === selectedFriend)?.name || "User"
+      setFriends(friends.map((friend) => (friend.id === selectedFriend ? { ...friend, isFriend: true } : friend)))
+      setConfirmDialogOpen(false)
+
+      toast({
+        title: "Friend request accepted",
+        description: `You are now friends with ${friendName}`,
+      })
+    }
+  }
+
+  const confirmDeleteRequest = () => {
+    if (selectedFriend !== null) {
+      const friendName = friends.find((f) => f.id === selectedFriend)?.name || "User"
+      // In a real app, you might want to remove the friend from the list
+      // For this demo, we'll just keep them in the list
+      setDeleteDialogOpen(false)
+
+      toast({
+        title: "Friend request deleted",
+        description: `Friend request from ${friendName} has been deleted`,
+      })
+    }
+  }
+
+  const confirmUnfriend = () => {
+    if (selectedFriend !== null) {
+      const friendName = friends.find((f) => f.id === selectedFriend)?.name || "User"
+      setFriends(friends.map((friend) => (friend.id === selectedFriend ? { ...friend, isFriend: false } : friend)))
+      setUnfriendDialogOpen(false)
+
+      toast({
+        title: "Friend removed",
+        description: `You are no longer friends with ${friendName}`,
+      })
+    }
+  }
+
+  const filteredFriends = searchQuery.trim()
+    ? friends.filter((friend) => friend.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : friends
+
+  // Function to generate username from name
+  const generateUsername = (name: string) => {
+    return name.toLowerCase().replace(/\s+/g, "")
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="container mx-auto max-w-7xl py-8 pt-24">
+        <Tabs defaultValue="all">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+            <TabsList>
+              <TabsTrigger value="all">All Friends</TabsTrigger>
+              <TabsTrigger value="requests">Friend Requests</TabsTrigger>
+              <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="suggestions" className="mt-6">
-              <h2 className="text-xl font-semibold mb-4">People You May Know</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array.from({ length: 9 }).map((_, i) => (
-                  <div key={`suggestion-${i}`} className="flex flex-col items-center p-4 border rounded-lg">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage
-                        src={`/placeholder.svg?height=96&width=96&text=Person ${i + 1}`}
-                        alt={`Person ${i + 1}`}
-                      />
-                      <AvatarFallback>P{i + 1}</AvatarFallback>
-                    </Avatar>
-                    <div className="mt-3 text-center">
-                      <div className="font-medium">Person {i + 1}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {Math.floor(Math.random() * 10) + 1} mutual friends
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-3 w-full">
-                      <Button className="flex-1 gap-2">
-                        <UserPlus className="h-4 w-4" />
-                        <span>Add</span>
-                      </Button>
-                      <Button variant="outline" size="icon">
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
+            <form onSubmit={handleSearch} className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search friends"
+                className="pl-9 w-full md:w-[250px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </form>
+          </div>
 
-            <TabsContent value="requests" className="mt-6">
-              <h2 className="text-xl font-semibold mb-4">Friend Requests</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={`request-${i}`} className="flex flex-col items-center p-4 border rounded-lg">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage
-                        src={`/placeholder.svg?height=96&width=96&text=Request ${i + 1}`}
-                        alt={`Request ${i + 1}`}
-                      />
-                      <AvatarFallback>R{i + 1}</AvatarFallback>
-                    </Avatar>
-                    <div className="mt-3 text-center">
-                      <div className="font-medium">Request {i + 1}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {Math.floor(Math.random() * 5) + 1} mutual friends
+          <TabsContent value="all">
+            <Card>
+              <CardHeader>
+                <CardTitle>All Friends ({friends.filter((f) => f.isFriend).length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {filteredFriends
+                    .filter((friend) => friend.isFriend)
+                    .map((friend) => (
+                      <div key={friend.id} className="flex flex-col items-center p-4 border rounded-lg">
+                        <Link href={`/profile/${generateUsername(friend.name)}`}>
+                          <Avatar className="h-16 w-16 mb-3">
+                            <AvatarImage src={friend.avatar} alt={friend.name} />
+                            <AvatarFallback>
+                              {friend.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                        </Link>
+                        <div className="text-center">
+                          <Link
+                            href={`/profile/${generateUsername(friend.name)}`}
+                            className="font-medium hover:underline"
+                          >
+                            {friend.name}
+                          </Link>
+                          <div className="text-sm text-muted-foreground">{friend.mutualFriends} mutual friends</div>
+                        </div>
+                        <Button variant="outline" className="mt-3 w-full" onClick={() => handleUnfriend(friend.id)}>
+                          Unfriend
+                        </Button>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Sent {Math.floor(Math.random() * 10) + 1}d ago
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-3 w-full">
-                      <Button className="flex-1">Confirm</Button>
-                      <Button variant="outline" className="flex-1">
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="all" className="mt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">All Friends</h2>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search Friends"
-                    className="pl-9 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
-                  />
+                    ))}
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={`friend-${i}`} className="flex items-center gap-3 p-3 border rounded-lg">
-                    <Avatar>
-                      <AvatarImage
-                        src={`/placeholder.svg?height=40&width=40&text=Friend ${i + 1}`}
-                        alt={`Friend ${i + 1}`}
-                      />
-                      <AvatarFallback>F{i + 1}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="font-medium">Friend {i + 1}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {Math.floor(Math.random() * 20) + 1} mutual friends
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="sm">
-                      <span className="sr-only">Options</span>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                      </svg>
-                    </Button>
+                {filteredFriends.filter((friend) => friend.isFriend).length === 0 && (
+                  <div className="text-center py-10 text-muted-foreground">
+                    {searchQuery ? "No friends match your search" : "You have no friends yet"}
                   </div>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="requests">
+            <Card>
+              <CardHeader>
+                <CardTitle>Friend Requests</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {filteredFriends
+                    .filter((friend) => !friend.isFriend)
+                    .slice(0, 2)
+                    .map((friend) => (
+                      <div key={friend.id} className="flex flex-col items-center p-4 border rounded-lg">
+                        <Link href={`/profile/${generateUsername(friend.name)}`}>
+                          <Avatar className="h-16 w-16 mb-3">
+                            <AvatarImage src={friend.avatar} alt={friend.name} />
+                            <AvatarFallback>
+                              {friend.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                        </Link>
+                        <div className="text-center">
+                          <Link
+                            href={`/profile/${generateUsername(friend.name)}`}
+                            className="font-medium hover:underline"
+                          >
+                            {friend.name}
+                          </Link>
+                          <div className="text-sm text-muted-foreground">{friend.mutualFriends} mutual friends</div>
+                        </div>
+                        <div className="flex gap-2 mt-3 w-full">
+                          <Button className="flex-1" onClick={() => handleAddFriend(friend.id)}>
+                            Confirm
+                          </Button>
+                          <Button variant="outline" className="flex-1" onClick={() => handleDeleteRequest(friend.id)}>
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+
+                {filteredFriends.filter((friend) => !friend.isFriend).length === 0 && (
+                  <div className="text-center py-10 text-muted-foreground">No friend requests to display</div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="suggestions">
+            <Card>
+              <CardHeader>
+                <CardTitle>Suggested Friends</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {filteredFriends
+                    .filter((friend) => !friend.isFriend)
+                    .slice(1, 4)
+                    .map((friend) => (
+                      <div key={friend.id} className="flex flex-col items-center p-4 border rounded-lg">
+                        <Link href={`/profile/${generateUsername(friend.name)}`}>
+                          <Avatar className="h-16 w-16 mb-3">
+                            <AvatarImage src={friend.avatar} alt={friend.name} />
+                            <AvatarFallback>
+                              {friend.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                        </Link>
+                        <div className="text-center">
+                          <Link
+                            href={`/profile/${generateUsername(friend.name)}`}
+                            className="font-medium hover:underline"
+                          >
+                            {friend.name}
+                          </Link>
+                          <div className="text-sm text-muted-foreground">{friend.mutualFriends} mutual friends</div>
+                        </div>
+                        <Button className="mt-3 w-full" onClick={() => handleAddFriend(friend.id)}>
+                          Add Friend
+                        </Button>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
+
+      {/* Confirm Friend Request Dialog */}
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Friend Request</DialogTitle>
+            <DialogDescription>
+              {selectedFriend !== null &&
+                `Are you sure you want to accept the friend request from ${friends.find((f) => f.id === selectedFriend)?.name}?`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmAddFriend} className="gap-2">
+              <Check className="h-4 w-4" />
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Friend Request Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Friend Request</DialogTitle>
+            <DialogDescription>
+              {selectedFriend !== null &&
+                `Are you sure you want to delete the friend request from ${friends.find((f) => f.id === selectedFriend)?.name}?`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteRequest} className="gap-2">
+              <X className="h-4 w-4" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unfriend Dialog */}
+      <Dialog open={unfriendDialogOpen} onOpenChange={setUnfriendDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Friend</DialogTitle>
+            <DialogDescription>
+              {selectedFriend !== null &&
+                `Are you sure you want to remove ${friends.find((f) => f.id === selectedFriend)?.name} from your friends list?`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            <Button variant="outline" onClick={() => setUnfriendDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmUnfriend}>
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

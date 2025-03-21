@@ -1,149 +1,147 @@
+"use client"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Bell, Check, Settings } from "lucide-react"
+import { Settings, X } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import Navbar from "@/components/navbar"
+
+interface Notification {
+  id: number
+  user: string
+  content: string
+  time: string
+  read: boolean
+}
 
 export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState<Notification[]>([
+    {
+      id: 1,
+      user: "Sarah Johnson",
+      content: "liked your post.",
+      time: "1 hour ago",
+      read: false,
+    },
+    {
+      id: 2,
+      user: "Michael Brown",
+      content: 'commented on your photo: "Great shot!"',
+      time: "2 hours ago",
+      read: false,
+    },
+    {
+      id: 3,
+      user: "Emily Smith",
+      content: "sent you a friend request.",
+      time: "3 hours ago",
+      read: false,
+    },
+    {
+      id: 4,
+      user: "David Wilson",
+      content: "shared your post.",
+      time: "4 hours ago",
+      read: true,
+    },
+    {
+      id: 5,
+      user: "Jessica Taylor",
+      content: "mentioned you in a comment.",
+      time: "5 hours ago",
+      read: true,
+    },
+  ])
+
+  const markAsRead = (id: number) => {
+    setNotifications(
+      notifications.map((notification) => (notification.id === id ? { ...notification, read: true } : notification)),
+    )
+  }
+
+  const removeNotification = (id: number) => {
+    setNotifications(notifications.filter((notification) => notification.id !== id))
+  }
+
+  const markAllAsRead = () => {
+    setNotifications(notifications.map((notification) => ({ ...notification, read: true })))
+  }
+
   return (
-    <div className="container py-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-2xl">Notifications</CardTitle>
-          <Button variant="ghost" size="icon">
-            <Settings className="h-5 w-5" />
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="all">
-            <TabsList className="mb-4">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="unread">Unread</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="all">
-              <div className="space-y-4">
-                <div className="flex items-start gap-4 p-3 rounded-lg bg-muted/50 border-l-4 border-blue-600">
-                  <Avatar>
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Sarah" />
-                    <AvatarFallback>SJ</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p>
-                      <span className="font-medium">Sarah Johnson</span> commented on your post: "Great photo! Where was
-                      this taken?"
-                    </p>
-                    <div className="text-xs text-muted-foreground mt-1">2 hours ago</div>
-                  </div>
-                  <Button variant="ghost" size="icon" className="mt-1">
-                    <Check className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors">
-                  <Avatar>
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Alex" />
-                    <AvatarFallback>AJ</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p>
-                      <span className="font-medium">Alex Johnson</span> liked your photo.
-                    </p>
-                    <div className="text-xs text-muted-foreground mt-1">5 hours ago</div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors">
-                  <Avatar>
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Tech" />
-                    <AvatarFallback>TI</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p>
-                      <span className="font-medium">Tech Innovations</span> posted a new update: "Exciting news coming
-                      next week!"
-                    </p>
-                    <div className="text-xs text-muted-foreground mt-1">1 day ago</div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors">
-                  <Avatar>
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Emily" />
-                    <AvatarFallback>ES</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p>
-                      <span className="font-medium">Emily Smith</span> tagged you in a photo.
-                    </p>
-                    <div className="text-xs text-muted-foreground mt-1">2 days ago</div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors">
-                  <div className="bg-blue-100 text-blue-600 rounded-full w-10 h-10 flex items-center justify-center">
-                    <Bell className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <p>
-                      You have a memory from <span className="font-medium">3 years ago</span> to look back on.
-                    </p>
-                    <div className="text-xs text-muted-foreground mt-1">3 days ago</div>
-                  </div>
-                </div>
-
-                {Array.from({ length: 5 }).map((_, i) => (
+    <>
+      <Navbar />
+      <div className="container mx-auto max-w-7xl py-8 pt-24">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Notifications</CardTitle>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={markAllAsRead}>Mark all as read</DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => alert("Notification settings are not available in the current version.")}
+                >
+                  Notification settings
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {notifications.length > 0 ? (
+                notifications.map((notification) => (
                   <div
-                    key={`notification-${i}`}
-                    className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors"
+                    key={notification.id}
+                    className={`p-4 rounded-md relative ${
+                      notification.read ? "hover:bg-muted/50" : "bg-muted border-l-4 border-primary"
+                    }`}
                   >
-                    <Avatar>
-                      <AvatarImage
-                        src={`/placeholder.svg?height=40&width=40&text=User ${i + 1}`}
-                        alt={`User ${i + 1}`}
-                      />
-                      <AvatarFallback>U{i + 1}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p>
-                        <span className="font-medium">User {i + 1}</span>{" "}
-                        {i % 2 === 0 ? "liked your post." : "commented on your photo."}
-                      </p>
-                      <div className="text-xs text-muted-foreground mt-1">{i + 4} days ago</div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-muted rounded-full shrink-0"></div>
+                      <div>
+                        <p>
+                          <span className="font-medium">{notification.user}</span> {notification.content}
+                        </p>
+                        <div className="text-xs text-muted-foreground mt-1">{notification.time}</div>
+                      </div>
+                      <div className="ml-auto flex gap-2">
+                        {!notification.read && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => markAsRead(notification.id)}
+                            title="Mark as read"
+                          >
+                            <div className="h-2 w-2 rounded-full bg-primary"></div>
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => removeNotification(notification.id)}
+                          title="Remove notification"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="unread">
-              <div className="space-y-4">
-                <div className="flex items-start gap-4 p-3 rounded-lg bg-muted/50 border-l-4 border-blue-600">
-                  <Avatar>
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Sarah" />
-                    <AvatarFallback>SJ</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p>
-                      <span className="font-medium">Sarah Johnson</span> commented on your post: "Great photo! Where was
-                      this taken?"
-                    </p>
-                    <div className="text-xs text-muted-foreground mt-1">2 hours ago</div>
-                  </div>
-                  <Button variant="ghost" size="icon" className="mt-1">
-                    <Check className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="p-6 text-center text-muted-foreground">
-                  <p>No more unread notifications.</p>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+                ))
+              ) : (
+                <div className="text-center py-10 text-muted-foreground">No notifications to display</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   )
 }
 
