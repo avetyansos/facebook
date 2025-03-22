@@ -4,18 +4,12 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { BookmarkIcon, Globe, MessageCircle, MoreHorizontal, Share2, ThumbsUp } from "lucide-react"
+import { Globe, MessageCircle, Share2, ThumbsUp } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
 
 export interface PostProps {
   id: string
@@ -57,6 +51,7 @@ export default function Post({
       time: "1h",
     },
   ])
+  const { toast } = useToast()
 
   const handleLike = () => {
     setLiked(!liked)
@@ -77,10 +72,17 @@ export default function Post({
     }
   }
 
+  const handleShare = () => {
+    toast({
+      title: "Feature not available",
+      description: "The share feature is not available in the current version.",
+    })
+  }
+
   return (
     <Card className="mb-4">
       <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
+        <div className="flex items-start">
           <div className="flex gap-3">
             <Link href={`/profile/${author.username}`}>
               <Avatar>
@@ -101,23 +103,6 @@ export default function Post({
               </div>
             </div>
           </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => alert("Post saved!")}>
-                <BookmarkIcon className="h-4 w-4 mr-2" />
-                Save post
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => alert("Post hidden!")}>Hide post</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => alert("Post reported!")}>Report post</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </CardHeader>
       <CardContent className="pb-3">
@@ -157,11 +142,7 @@ export default function Post({
             <MessageCircle className="h-5 w-5" />
             <span>Comment</span>
           </Button>
-          <Button
-            variant="ghost"
-            className="flex-1 gap-2"
-            onClick={() => alert("Share feature is not available in the current version.")}
-          >
+          <Button variant="ghost" className="flex-1 gap-2" onClick={handleShare}>
             <Share2 className="h-5 w-5" />
             <span>Share</span>
           </Button>
@@ -205,12 +186,25 @@ export default function Post({
                       <p className="text-sm">{comment.text}</p>
                     </div>
                     <div className="flex gap-3 text-xs text-muted-foreground mt-1 px-3">
-                      <button className="font-medium hover:underline" onClick={() => alert("Comment liked!")}>
+                      <button
+                        className="font-medium hover:underline"
+                        onClick={() =>
+                          toast({
+                            title: "Feature not available",
+                            description: "The like comment feature is not available in the current version.",
+                          })
+                        }
+                      >
                         Like
                       </button>
                       <button
                         className="font-medium hover:underline"
-                        onClick={() => alert("Reply feature is not available in the current version.")}
+                        onClick={() =>
+                          toast({
+                            title: "Feature not available",
+                            description: "The reply feature is not available in the current version.",
+                          })
+                        }
                       >
                         Reply
                       </button>

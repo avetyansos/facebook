@@ -8,7 +8,7 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto max-w-7xl py-8 pt-24">
+      <div className="container mx-auto max-w-7xl py-8 pt-24 px-4 md:px-6">
         <Card className="border-primary/20">
           <CardHeader className="text-center pb-2">
             <Construction className="h-16 w-16 text-primary mx-auto mb-2" />

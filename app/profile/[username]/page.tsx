@@ -4,10 +4,11 @@ import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Camera, Edit, MessageCircle, MoreHorizontal, Search } from "lucide-react"
+import { Camera, Edit } from "lucide-react"
 import Post from "@/components/post"
 import CreatePost from "@/components/create-post"
 import Navbar from "@/components/navbar"
+import { useToast } from "@/hooks/use-toast"
 
 interface ProfilePageProps {
   params: {
@@ -16,6 +17,7 @@ interface ProfilePageProps {
 }
 
 export default function ProfilePage({ params }: ProfilePageProps) {
+  const { toast } = useToast()
   // This would typically come from an API based on the username
   // For now, we'll generate user data based on the username
   const username = params.username
@@ -52,6 +54,13 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
   const [isFollowing, setIsFollowing] = useState(false)
 
+  const handleAddPost = (content: string) => {
+    toast({
+      title: "Post created",
+      description: "Your post has been published successfully!",
+    })
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -70,7 +79,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
             )}
           </div>
 
-          <div className="container max-w-7xl">
+          <div className="container max-w-7xl px-4 md:px-6">
             <div className="flex flex-col md:flex-row gap-4 items-start md:items-end -mt-16 md:-mt-20 relative z-10">
               <div className="relative">
                 <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background">
@@ -106,15 +115,8 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         <Button className="gap-2" onClick={() => setIsFollowing(!isFollowing)}>
                           {isFollowing ? "Following ✓" : "Follow"}
                         </Button>
-                        <Button variant="outline" className="gap-2">
-                          <MessageCircle className="h-4 w-4" />
-                          <span>Message</span>
-                        </Button>
                       </>
                     )}
-                    <Button variant="outline" size="icon">
-                      <MoreHorizontal className="h-5 w-5" />
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -122,7 +124,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           </div>
         </div>
 
-        <div className="container max-w-7xl">
+        <div className="container max-w-7xl px-4 md:px-6">
           <div className="flex flex-col lg:flex-row gap-6">
             <div className="lg:w-1/3 space-y-6">
               <div className="bg-card rounded-lg border p-4">
@@ -212,49 +214,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   )}
                 </div>
               </div>
-
-              <div className="bg-card rounded-lg border p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-semibold text-lg">Photos</h2>
-                  <Button variant="link" className="p-0 h-auto">
-                    See All Photos
-                  </Button>
-                </div>
-                <div className="grid grid-cols-3 gap-1">
-                  {Array.from({ length: 9 }).map((_, i) => (
-                    <div key={`photo-${i}`} className="aspect-square overflow-hidden rounded-md">
-                      <img
-                        src={`/placeholder.svg?height=100&width=100&text=Photo ${i + 1}`}
-                        alt={`Photo ${i + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-card rounded-lg border p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-semibold text-lg">Friends</h2>
-                  <Button variant="link" className="p-0 h-auto">
-                    See All Friends
-                  </Button>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={`friend-${i}`} className="text-center">
-                      <Avatar className="h-16 w-16 mx-auto">
-                        <AvatarImage
-                          src={`/placeholder.svg?height=64&width=64&text=Friend ${i + 1}`}
-                          alt={`Friend ${i + 1}`}
-                        />
-                        <AvatarFallback>F{i + 1}</AvatarFallback>
-                      </Avatar>
-                      <div className="mt-1 text-sm truncate">Friend {i + 1}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
 
             <div className="lg:w-2/3">
@@ -266,15 +225,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   <TabsTrigger value="about" className="flex-1">
                     About
                   </TabsTrigger>
-                  <TabsTrigger value="friends" className="flex-1">
-                    Friends
-                  </TabsTrigger>
-                  <TabsTrigger value="photos" className="flex-1">
-                    Photos
-                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="posts" className="mt-6">
-                  {username === "johndoe" && <CreatePost />}
+                  {username === "johndoe" && <CreatePost onPostSubmit={handleAddPost} />}
 
                   <Post
                     id="profile1"
@@ -382,60 +335,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </TabsContent>
-                <TabsContent value="friends">
-                  <div className="bg-card rounded-lg border p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-semibold">Friends</h2>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="Search friends"
-                          className="pl-8 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
-                        />
-                        <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {[...Array(9)].map((_, i) => (
-                        <div key={i} className="flex flex-col items-center p-4 border rounded-lg">
-                          <Avatar className="h-24 w-24">
-                            <AvatarImage
-                              src={`/placeholder.svg?height=96&width=96&text=Friend ${i + 1}`}
-                              alt={`Friend ${i + 1}`}
-                            />
-                            <AvatarFallback>F{i + 1}</AvatarFallback>
-                          </Avatar>
-                          <div className="mt-3 text-center">
-                            <div className="font-medium">Friend {i + 1}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {Math.floor(Math.random() * 20) + 1} mutual friends
-                            </div>
-                          </div>
-                          <Button className="mt-3 w-full gap-2">
-                            {Math.random() > 0.5 ? "Friends" : "Add Friend"}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </TabsContent>
-                <TabsContent value="photos">
-                  <div className="bg-card rounded-lg border p-6">
-                    <h2 className="text-xl font-semibold mb-4">Photos</h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                      {Array.from({ length: 16 }).map((_, i) => (
-                        <div key={`gallery-photo-${i}`} className="aspect-square overflow-hidden rounded-md">
-                          <img
-                            src={`/placeholder.svg?height=200&width=200&text=Photo ${i + 1}`}
-                            alt={`Photo ${i + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
                     </div>
                   </div>
                 </TabsContent>

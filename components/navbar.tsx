@@ -3,7 +3,7 @@
 import type React from "react"
 
 import Link from "next/link"
-import { Bell, Home, Menu, MessageSquare, Search, User, Users } from "lucide-react"
+import { Bell, Home, Menu, User, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -19,7 +19,7 @@ import { useState } from "react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Search } from "lucide-react"
 
 export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -29,17 +29,11 @@ export default function Navbar() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    // Use a more direct approach to show the toast
     toast({
       title: "Search Not Available",
       description: "The search functionality is not implemented in this version.",
       variant: "destructive",
     })
-  }
-
-  const handleMessagesClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault()
-    router.push("/messages")
   }
 
   return (
@@ -72,43 +66,13 @@ export default function Navbar() {
             <Link href="/friends" className="text-foreground hover:text-primary transition-colors">
               <Users className="h-6 w-6" />
             </Link>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/messages"
-                    onClick={handleMessagesClick}
-                    className="text-muted-foreground hover:text-primary transition-colors relative"
-                  >
-                    <MessageSquare className="h-6 w-6" />
-                    <span className="absolute -top-1 -right-1 text-primary text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                      !
-                    </span>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Messages feature not available</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
             <Link href="/notifications" className="text-foreground hover:text-primary transition-colors">
               <Bell className="h-6 w-6" />
             </Link>
           </nav>
 
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => {
-                if (isSearchOpen) {
-                  setIsSearchOpen(false)
-                } else {
-                  setIsSearchOpen(true)
-                }
-              }}
-            >
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSearchOpen(!isSearchOpen)}>
               <Search className="h-5 w-5" />
             </Button>
 
@@ -134,16 +98,6 @@ export default function Navbar() {
                     <Users className="h-5 w-5" />
                     <span>Friends</span>
                   </Link>
-                  <div
-                    className="flex items-center gap-2 text-muted-foreground cursor-pointer"
-                    onClick={() => {
-                      router.push("/messages")
-                    }}
-                  >
-                    <MessageSquare className="h-5 w-5" />
-                    <span>Messages</span>
-                    <span className="ml-2 text-xs text-muted-foreground">Not Available</span>
-                  </div>
                   <Link
                     href="/notifications"
                     className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
@@ -176,9 +130,6 @@ export default function Navbar() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/profile/johndoe">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/settings">Settings</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

@@ -19,7 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 
 interface Friend {
   id: number
@@ -113,14 +114,34 @@ export default function FriendsPage() {
   const confirmUnfriend = () => {
     if (selectedFriend !== null) {
       const friendName = friends.find((f) => f.id === selectedFriend)?.name || "User"
+      const friendId = selectedFriend
+
+      // Update the friends list
       setFriends(friends.map((friend) => (friend.id === selectedFriend ? { ...friend, isFriend: false } : friend)))
       setUnfriendDialogOpen(false)
 
+      // Show toast with Undo action
       toast({
         title: "Friend removed",
         description: `You are no longer friends with ${friendName}`,
+        action: (
+          <ToastAction altText="Undo" onClick={() => undoUnfriend(friendId)}>
+            Undo
+          </ToastAction>
+        ),
       })
     }
+  }
+
+  // Function to undo unfriending
+  const undoUnfriend = (id: number) => {
+    setFriends(friends.map((friend) => (friend.id === id ? { ...friend, isFriend: true } : friend)))
+
+    const friendName = friends.find((f) => f.id === id)?.name || "User"
+    toast({
+      title: "Friend restored",
+      description: `You are friends with ${friendName} again`,
+    })
   }
 
   const filteredFriends = searchQuery.trim()
@@ -135,7 +156,7 @@ export default function FriendsPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto max-w-7xl py-8 pt-24">
+      <div className="container mx-auto max-w-7xl py-8 pt-24 px-4 md:px-6">
         <Tabs defaultValue="all">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
             <TabsList>

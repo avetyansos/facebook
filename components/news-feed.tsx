@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import CreatePost from "@/components/create-post"
 import Post, { type PostProps } from "@/components/post"
 
@@ -6,8 +9,8 @@ interface NewsFeedProps {
 }
 
 export default function NewsFeed({ filter }: NewsFeedProps) {
-  // This would typically come from an API
-  const posts: PostProps[] = [
+  // Initial posts data
+  const initialPosts: PostProps[] = [
     {
       id: "1",
       author: {
@@ -55,17 +58,43 @@ export default function NewsFeed({ filter }: NewsFeedProps) {
     },
   ]
 
+  // State to manage posts
+  const [posts, setPosts] = useState<PostProps[]>(initialPosts)
+
+  // Function to add a new post
+  const addPost = (content: string) => {
+    const newPost: PostProps = {
+      id: `post-${Date.now()}`,
+      author: {
+        name: "John Doe",
+        image: "/placeholder-user.jpg",
+        username: "johndoe",
+      },
+      content: content,
+      timestamp: "Just now",
+      likes: 0,
+      comments: 0,
+      shares: 0,
+    }
+
+    // Add the new post to the beginning of the posts array
+    setPosts([newPost, ...posts])
+  }
+
   // Filter posts based on the selected tab
   const filteredPosts =
     filter === "friends"
-      ? posts.filter((post) => post.author.username === "alexj" || post.author.username === "sarahj")
+      ? posts.filter(
+          (post) =>
+            post.author.username === "alexj" || post.author.username === "sarahj" || post.author.username === "johndoe",
+        )
       : filter === "groups"
         ? posts.filter((post) => post.author.username === "techinnovations")
         : posts
 
   return (
     <div>
-      <CreatePost />
+      <CreatePost onPostSubmit={addPost} />
 
       {filteredPosts.length > 0 ? (
         <div className="space-y-4">
