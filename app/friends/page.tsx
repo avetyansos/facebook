@@ -1,14 +1,11 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Check, X } from "lucide-react"
+import { Check, X } from "lucide-react"
 import Navbar from "@/components/navbar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -22,110 +19,163 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 
-interface Friend {
+interface User {
   id: number
   name: string
-  mutualFriends: number
-  isFriend: boolean
+  mutualFollowers: number
+  isFollowing: boolean
+  isRequested?: boolean
+  isDeleted?: boolean
   avatar?: string
 }
 
-export default function FriendsPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [friends, setFriends] = useState<Friend[]>([
-    { id: 1, name: "Sarah Johnson", mutualFriends: 5, isFriend: true, avatar: "/placeholder.svg?height=100&width=100" },
-    { id: 2, name: "Michael Brown", mutualFriends: 3, isFriend: true, avatar: "/placeholder.svg?height=100&width=100" },
-    { id: 3, name: "Emily Smith", mutualFriends: 7, isFriend: true, avatar: "/placeholder.svg?height=100&width=100" },
-    { id: 4, name: "David Wilson", mutualFriends: 2, isFriend: false, avatar: "/placeholder.svg?height=100&width=100" },
+export default function ConnectionsPage() {
+  const [users, setUsers] = useState<User[]>([
+    {
+      id: 1,
+      name: "Sarah Johnson",
+      mutualFollowers: 5,
+      isFollowing: true,
+      isDeleted: false,
+      avatar: "/placeholder.svg?height=100&width=100",
+    },
+    {
+      id: 2,
+      name: "Michael Brown",
+      mutualFollowers: 3,
+      isFollowing: true,
+      isDeleted: false,
+      avatar: "/placeholder.svg?height=100&width=100",
+    },
+    {
+      id: 3,
+      name: "Emily Smith",
+      mutualFollowers: 7,
+      isFollowing: true,
+      isDeleted: false,
+      avatar: "/placeholder.svg?height=100&width=100",
+    },
+    {
+      id: 4,
+      name: "David Wilson",
+      mutualFollowers: 2,
+      isFollowing: false,
+      isRequested: true,
+      isDeleted: false,
+      avatar: "/placeholder.svg?height=100&width=100",
+    },
     {
       id: 5,
       name: "Jessica Taylor",
-      mutualFriends: 9,
-      isFriend: false,
+      mutualFollowers: 9,
+      isFollowing: false,
+      isRequested: true,
+      isDeleted: false,
       avatar: "/placeholder.svg?height=100&width=100",
     },
     {
       id: 6,
       name: "Robert Miller",
-      mutualFriends: 4,
-      isFriend: false,
+      mutualFollowers: 4,
+      isFollowing: false,
+      isRequested: false,
+      isDeleted: false,
       avatar: "/placeholder.svg?height=100&width=100",
     },
   ])
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [unfriendDialogOpen, setUnfriendDialogOpen] = useState(false)
-  const [selectedFriend, setSelectedFriend] = useState<number | null>(null)
+  const [unfollowDialogOpen, setUnfollowDialogOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<number | null>(null)
   const { toast } = useToast()
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      toast({
-        title: "Search Not Available",
-        description: "The search functionality is not implemented in this version.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleAddFriend = (id: number) => {
-    setSelectedFriend(id)
+  const handleAcceptRequest = (id: number) => {
+    setSelectedUser(id)
     setConfirmDialogOpen(true)
   }
 
   const handleDeleteRequest = (id: number) => {
-    setSelectedFriend(id)
+    setSelectedUser(id)
     setDeleteDialogOpen(true)
   }
 
-  const handleUnfriend = (id: number) => {
-    setSelectedFriend(id)
-    setUnfriendDialogOpen(true)
+  const handleUnfollow = (id: number) => {
+    setSelectedUser(id)
+    setUnfollowDialogOpen(true)
   }
 
-  const confirmAddFriend = () => {
-    if (selectedFriend !== null) {
-      const friendName = friends.find((f) => f.id === selectedFriend)?.name || "User"
-      setFriends(friends.map((friend) => (friend.id === selectedFriend ? { ...friend, isFriend: true } : friend)))
+  const handleFollow = (id: number) => {
+    const userName = users.find((u) => u.id === id)?.name || "User"
+    setUsers(users.map((user) => (user.id === id ? { ...user, isFollowing: true } : user)))
+
+    toast({
+      title: "Following",
+      description: `You are now following ${userName}`,
+    })
+  }
+
+  const confirmAcceptRequest = () => {
+    if (selectedUser !== null) {
+      const userName = users.find((u) => u.id === selectedUser)?.name || "User"
+      setUsers(
+        users.map((user) => (user.id === selectedUser ? { ...user, isFollowing: true, isRequested: false } : user)),
+      )
       setConfirmDialogOpen(false)
 
       toast({
-        title: "Friend request accepted",
-        description: `You are now friends with ${friendName}`,
+        title: "Follow request accepted",
+        description: `You are now following ${userName}`,
       })
     }
   }
 
   const confirmDeleteRequest = () => {
-    if (selectedFriend !== null) {
-      const friendName = friends.find((f) => f.id === selectedFriend)?.name || "User"
-      // In a real app, you might want to remove the friend from the list
-      // For this demo, we'll just keep them in the list
-      setDeleteDialogOpen(false)
+    if (selectedUser !== null) {
+      const user = users.find((u) => u.id === selectedUser)
+      if (user) {
+        // Mark as deleted instead of removing from the list
+        setUsers(users.map((u) => (u.id === selectedUser ? { ...u, isDeleted: true } : u)))
+        setDeleteDialogOpen(false)
 
-      toast({
-        title: "Friend request deleted",
-        description: `Friend request from ${friendName} has been deleted`,
-      })
+        toast({
+          title: "Request deleted",
+          description: `Follow request from ${user.name} has been deleted`,
+          action: (
+            <ToastAction altText="Undo" onClick={() => undoDeleteRequest(user.id)}>
+              Undo
+            </ToastAction>
+          ),
+        })
+      }
     }
   }
 
-  const confirmUnfriend = () => {
-    if (selectedFriend !== null) {
-      const friendName = friends.find((f) => f.id === selectedFriend)?.name || "User"
-      const friendId = selectedFriend
+  const undoDeleteRequest = (id: number) => {
+    // Mark as not deleted to restore it
+    setUsers(users.map((u) => (u.id === id ? { ...u, isDeleted: false } : u)))
 
-      // Update the friends list
-      setFriends(friends.map((friend) => (friend.id === selectedFriend ? { ...friend, isFriend: false } : friend)))
-      setUnfriendDialogOpen(false)
+    const userName = users.find((u) => u.id === id)?.name || "User"
+    toast({
+      title: "Request restored",
+      description: `Follow request from ${userName} has been restored`,
+    })
+  }
+
+  const confirmUnfollow = () => {
+    if (selectedUser !== null) {
+      const userName = users.find((u) => u.id === selectedUser)?.name || "User"
+      const userId = selectedUser
+
+      // Update the users list
+      setUsers(users.map((user) => (user.id === selectedUser ? { ...user, isFollowing: false } : user)))
+      setUnfollowDialogOpen(false)
 
       // Show toast with Undo action
       toast({
-        title: "Friend removed",
-        description: `You are no longer friends with ${friendName}`,
+        title: "Unfollowed",
+        description: `You are no longer following ${userName}`,
         action: (
-          <ToastAction altText="Undo" onClick={() => undoUnfriend(friendId)}>
+          <ToastAction altText="Undo" onClick={() => undoUnfollow(userId)}>
             Undo
           </ToastAction>
         ),
@@ -133,91 +183,75 @@ export default function FriendsPage() {
     }
   }
 
-  // Function to undo unfriending
-  const undoUnfriend = (id: number) => {
-    setFriends(friends.map((friend) => (friend.id === id ? { ...friend, isFriend: true } : friend)))
+  // Function to undo unfollowing
+  const undoUnfollow = (id: number) => {
+    setUsers(users.map((user) => (user.id === id ? { ...user, isFollowing: true } : user)))
 
-    const friendName = friends.find((f) => f.id === id)?.name || "User"
+    const userName = users.find((u) => u.id === id)?.name || "User"
     toast({
-      title: "Friend restored",
-      description: `You are friends with ${friendName} again`,
+      title: "Following restored",
+      description: `You are following ${userName} again`,
     })
   }
-
-  const filteredFriends = searchQuery.trim()
-    ? friends.filter((friend) => friend.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : friends
 
   // Function to generate username from name
   const generateUsername = (name: string) => {
     return name.toLowerCase().replace(/\s+/g, "")
   }
 
+  // Filter users for each tab
+  const following = users.filter((user) => user.isFollowing)
+  const requests = users.filter((user) => !user.isFollowing && user.isRequested && !user.isDeleted)
+  const suggestions = users.filter((user) => !user.isFollowing && !user.isRequested).slice(0, 3)
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto max-w-7xl py-8 pt-24 px-4 md:px-6">
-        <Tabs defaultValue="all">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-            <TabsList>
-              <TabsTrigger value="all">All Friends</TabsTrigger>
-              <TabsTrigger value="requests">Friend Requests</TabsTrigger>
+        <Tabs defaultValue="following">
+          <div className="mb-6">
+            <TabsList className="w-full grid grid-cols-3">
+              <TabsTrigger value="following">Following</TabsTrigger>
+              <TabsTrigger value="requests">Requests</TabsTrigger>
               <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
             </TabsList>
-
-            <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search friends"
-                className="pl-9 w-full md:w-[250px]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </form>
           </div>
 
-          <TabsContent value="all">
+          <TabsContent value="following">
             <Card>
               <CardHeader>
-                <CardTitle>All Friends ({friends.filter((f) => f.isFriend).length})</CardTitle>
+                <CardTitle>Following ({following.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {filteredFriends
-                    .filter((friend) => friend.isFriend)
-                    .map((friend) => (
-                      <div key={friend.id} className="flex flex-col items-center p-4 border rounded-lg">
-                        <Link href={`/profile/${generateUsername(friend.name)}`}>
-                          <Avatar className="h-16 w-16 mb-3">
-                            <AvatarImage src={friend.avatar} alt={friend.name} />
-                            <AvatarFallback>
-                              {friend.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </AvatarFallback>
-                          </Avatar>
+                  {following.map((user) => (
+                    <div key={user.id} className="flex flex-col items-center p-4 border rounded-lg">
+                      <Link href={`/profile/${generateUsername(user.name)}`}>
+                        <Avatar className="h-16 w-16 mb-3">
+                          <AvatarImage src={user.avatar} alt={user.name} />
+                          <AvatarFallback>
+                            {user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
+                      <div className="text-center">
+                        <Link href={`/profile/${generateUsername(user.name)}`} className="font-medium hover:underline">
+                          {user.name}
                         </Link>
-                        <div className="text-center">
-                          <Link
-                            href={`/profile/${generateUsername(friend.name)}`}
-                            className="font-medium hover:underline"
-                          >
-                            {friend.name}
-                          </Link>
-                          <div className="text-sm text-muted-foreground">{friend.mutualFriends} mutual friends</div>
-                        </div>
-                        <Button variant="outline" className="mt-3 w-full" onClick={() => handleUnfriend(friend.id)}>
-                          Unfriend
-                        </Button>
+                        <div className="text-sm text-muted-foreground">{user.mutualFollowers} mutual followers</div>
                       </div>
-                    ))}
+                      <Button variant="outline" className="mt-3 w-full" onClick={() => handleUnfollow(user.id)}>
+                        Unfollow
+                      </Button>
+                    </div>
+                  ))}
                 </div>
 
-                {filteredFriends.filter((friend) => friend.isFriend).length === 0 && (
-                  <div className="text-center py-10 text-muted-foreground">
-                    {searchQuery ? "No friends match your search" : "You have no friends yet"}
-                  </div>
+                {following.length === 0 && (
+                  <div className="text-center py-10 text-muted-foreground">You are not following anyone yet</div>
                 )}
               </CardContent>
             </Card>
@@ -226,49 +260,53 @@ export default function FriendsPage() {
           <TabsContent value="requests">
             <Card>
               <CardHeader>
-                <CardTitle>Friend Requests</CardTitle>
+                <CardTitle>Follow Requests</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {filteredFriends
-                    .filter((friend) => !friend.isFriend)
-                    .slice(0, 2)
-                    .map((friend) => (
-                      <div key={friend.id} className="flex flex-col items-center p-4 border rounded-lg">
-                        <Link href={`/profile/${generateUsername(friend.name)}`}>
-                          <Avatar className="h-16 w-16 mb-3">
-                            <AvatarImage src={friend.avatar} alt={friend.name} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {requests.map((user) => (
+                    <div key={user.id} className="p-4 border rounded-lg relative">
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                        <Link href={`/profile/${generateUsername(user.name)}`} className="shrink-0">
+                          <Avatar className="h-16 w-16">
+                            <AvatarImage src={user.avatar} alt={user.name} />
                             <AvatarFallback>
-                              {friend.name
+                              {user.name
                                 .split(" ")
                                 .map((n) => n[0])
                                 .join("")}
                             </AvatarFallback>
                           </Avatar>
                         </Link>
-                        <div className="text-center">
-                          <Link
-                            href={`/profile/${generateUsername(friend.name)}`}
-                            className="font-medium hover:underline"
-                          >
-                            {friend.name}
-                          </Link>
-                          <div className="text-sm text-muted-foreground">{friend.mutualFriends} mutual friends</div>
-                        </div>
-                        <div className="flex gap-2 mt-3 w-full">
-                          <Button className="flex-1" onClick={() => handleAddFriend(friend.id)}>
-                            Confirm
-                          </Button>
-                          <Button variant="outline" className="flex-1" onClick={() => handleDeleteRequest(friend.id)}>
-                            Delete
-                          </Button>
+                        <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left">
+                          <div className="font-medium text-lg">
+                            <Link href={`/profile/${generateUsername(user.name)}`} className="hover:underline">
+                              {user.name}
+                            </Link>
+                          </div>
+                          <div className="text-muted-foreground">{user.mutualFollowers} mutual followers</div>
+
+                          <div className="flex gap-2 mt-3 w-full">
+                            <Button
+                              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                              onClick={() => handleAcceptRequest(user.id)}
+                            >
+                              <Check className="mr-2 h-4 w-4 md:hidden" />
+                              <span>Confirm</span>
+                            </Button>
+                            <Button variant="outline" className="flex-1" onClick={() => handleDeleteRequest(user.id)}>
+                              <X className="mr-2 h-4 w-4 md:hidden" />
+                              <span>Delete</span>
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
                 </div>
 
-                {filteredFriends.filter((friend) => !friend.isFriend).length === 0 && (
-                  <div className="text-center py-10 text-muted-foreground">No friend requests to display</div>
+                {requests.length === 0 && (
+                  <div className="text-center py-10 text-muted-foreground">No follow requests to display</div>
                 )}
               </CardContent>
             </Card>
@@ -277,40 +315,44 @@ export default function FriendsPage() {
           <TabsContent value="suggestions">
             <Card>
               <CardHeader>
-                <CardTitle>Suggested Friends</CardTitle>
+                <CardTitle>Suggested Accounts</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {filteredFriends
-                    .filter((friend) => !friend.isFriend)
-                    .slice(1, 4)
-                    .map((friend) => (
-                      <div key={friend.id} className="flex flex-col items-center p-4 border rounded-lg">
-                        <Link href={`/profile/${generateUsername(friend.name)}`}>
-                          <Avatar className="h-16 w-16 mb-3">
-                            <AvatarImage src={friend.avatar} alt={friend.name} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {suggestions.map((user) => (
+                    <div key={user.id} className="p-4 border rounded-lg relative">
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                        <Link href={`/profile/${generateUsername(user.name)}`} className="shrink-0">
+                          <Avatar className="h-16 w-16">
+                            <AvatarImage src={user.avatar} alt={user.name} />
                             <AvatarFallback>
-                              {friend.name
+                              {user.name
                                 .split(" ")
                                 .map((n) => n[0])
                                 .join("")}
                             </AvatarFallback>
                           </Avatar>
                         </Link>
-                        <div className="text-center">
-                          <Link
-                            href={`/profile/${generateUsername(friend.name)}`}
-                            className="font-medium hover:underline"
-                          >
-                            {friend.name}
-                          </Link>
-                          <div className="text-sm text-muted-foreground">{friend.mutualFriends} mutual friends</div>
+                        <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left">
+                          <div className="font-medium text-lg">
+                            <Link href={`/profile/${generateUsername(user.name)}`} className="hover:underline">
+                              {user.name}
+                            </Link>
+                          </div>
+                          <div className="text-muted-foreground">{user.mutualFollowers} mutual followers</div>
+
+                          <div className="mt-3 w-full">
+                            <Button
+                              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                              onClick={() => handleFollow(user.id)}
+                            >
+                              Follow
+                            </Button>
+                          </div>
                         </div>
-                        <Button className="mt-3 w-full" onClick={() => handleAddFriend(friend.id)}>
-                          Add Friend
-                        </Button>
                       </div>
-                    ))}
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -318,21 +360,21 @@ export default function FriendsPage() {
         </Tabs>
       </div>
 
-      {/* Confirm Friend Request Dialog */}
+      {/* Confirm Follow Request Dialog */}
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Friend Request</DialogTitle>
+            <DialogTitle>Confirm Follow Request</DialogTitle>
             <DialogDescription>
-              {selectedFriend !== null &&
-                `Are you sure you want to accept the friend request from ${friends.find((f) => f.id === selectedFriend)?.name}?`}
+              {selectedUser !== null &&
+                `Are you sure you want to accept the follow request from ${users.find((u) => u.id === selectedUser)?.name}?`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-end">
             <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={confirmAddFriend} className="gap-2">
+            <Button onClick={confirmAcceptRequest} className="gap-2">
               <Check className="h-4 w-4" />
               Confirm
             </Button>
@@ -340,14 +382,14 @@ export default function FriendsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Friend Request Dialog */}
+      {/* Delete Follow Request Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Friend Request</DialogTitle>
+            <DialogTitle>Delete Follow Request</DialogTitle>
             <DialogDescription>
-              {selectedFriend !== null &&
-                `Are you sure you want to delete the friend request from ${friends.find((f) => f.id === selectedFriend)?.name}?`}
+              {selectedUser !== null &&
+                `Are you sure you want to delete the follow request from ${users.find((u) => u.id === selectedUser)?.name}?`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-end">
@@ -362,22 +404,22 @@ export default function FriendsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Unfriend Dialog */}
-      <Dialog open={unfriendDialogOpen} onOpenChange={setUnfriendDialogOpen}>
+      {/* Unfollow Dialog */}
+      <Dialog open={unfollowDialogOpen} onOpenChange={setUnfollowDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Remove Friend</DialogTitle>
+            <DialogTitle>Unfollow</DialogTitle>
             <DialogDescription>
-              {selectedFriend !== null &&
-                `Are you sure you want to remove ${friends.find((f) => f.id === selectedFriend)?.name} from your friends list?`}
+              {selectedUser !== null &&
+                `Are you sure you want to unfollow ${users.find((u) => u.id === selectedUser)?.name}?`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-end">
-            <Button variant="outline" onClick={() => setUnfriendDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setUnfollowDialogOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmUnfriend}>
-              Remove
+            <Button variant="destructive" onClick={confirmUnfollow}>
+              Unfollow
             </Button>
           </DialogFooter>
         </DialogContent>

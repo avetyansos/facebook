@@ -1,40 +1,13 @@
 "use client"
 
-import type React from "react"
-
 import Link from "next/link"
 import { Bell, Home, Menu, User, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useState } from "react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
-import { Search } from "lucide-react"
 
 export default function Navbar() {
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const router = useRouter()
   const { toast } = useToast()
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    toast({
-      title: "Search Not Available",
-      description: "The search functionality is not implemented in this version.",
-      variant: "destructive",
-    })
-  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b">
@@ -46,17 +19,6 @@ export default function Navbar() {
                 f
               </div>
             </Link>
-            <div className="hidden md:flex relative">
-              <form onSubmit={handleSearch} className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search SocialConnect (Not Available)"
-                  className="w-[300px] pl-9"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </form>
-            </div>
           </div>
 
           <nav className="hidden md:flex items-center gap-6">
@@ -72,10 +34,6 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSearchOpen(!isSearchOpen)}>
-              <Search className="h-5 w-5" />
-            </Button>
-
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">
@@ -115,51 +73,8 @@ export default function Navbar() {
                 </nav>
               </SheetContent>
             </Sheet>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Avatar>
-                    <AvatarImage src="/placeholder-user.jpg" alt="User" />
-                    <AvatarFallback>JD</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile/johndoe">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() =>
-                    toast({
-                      title: "Logged out",
-                      description: "You have been logged out successfully!",
-                    })
-                  }
-                >
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
-
-        {isSearchOpen && (
-          <div className="md:hidden p-4 border-t">
-            <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search SocialConnect (Not Available)"
-                className="w-full pl-9"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </form>
-          </div>
-        )}
       </div>
     </header>
   )

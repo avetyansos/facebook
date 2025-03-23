@@ -3,8 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Settings, X } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { X } from "lucide-react"
 import Navbar from "@/components/navbar"
 
 interface Notification {
@@ -75,21 +74,9 @@ export default function NotificationsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Notifications</CardTitle>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Settings className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={markAllAsRead}>Mark all as read</DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => alert("Notification settings are not available in the current version.")}
-                >
-                  Notification settings
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button variant="outline" onClick={markAllAsRead}>
+              Mark all as read
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

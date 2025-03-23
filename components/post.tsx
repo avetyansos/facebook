@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { Globe, MessageCircle, Share2, ThumbsUp } from "lucide-react"
+import { Globe, MessageCircle, ThumbsUp } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
@@ -67,16 +67,10 @@ export default function Post({
         text: commentText,
         time: "Just now",
       }
-      setCommentsList([...commentsList, newComment])
+      // Add new comment to the beginning of the array
+      setCommentsList([newComment, ...commentsList])
       setCommentText("")
     }
-  }
-
-  const handleShare = () => {
-    toast({
-      title: "Feature not available",
-      description: "The share feature is not available in the current version.",
-    })
   }
 
   return (
@@ -125,11 +119,10 @@ export default function Post({
             </div>
             <span>{likeCount}</span>
           </div>
-          <div className="flex gap-3">
+          <div>
             <button className="hover:underline" onClick={() => setShowComments(!showComments)}>
               {commentsList.length} comments
             </button>
-            <button className="hover:underline">{shares} shares</button>
           </div>
         </div>
 
@@ -141,10 +134,6 @@ export default function Post({
           <Button variant="ghost" className="flex-1 gap-2" onClick={() => setShowComments(!showComments)}>
             <MessageCircle className="h-5 w-5" />
             <span>Comment</span>
-          </Button>
-          <Button variant="ghost" className="flex-1 gap-2" onClick={handleShare}>
-            <Share2 className="h-5 w-5" />
-            <span>Share</span>
           </Button>
         </div>
 
@@ -185,29 +174,7 @@ export default function Post({
                       <div className="font-medium text-sm">{comment.name}</div>
                       <p className="text-sm">{comment.text}</p>
                     </div>
-                    <div className="flex gap-3 text-xs text-muted-foreground mt-1 px-3">
-                      <button
-                        className="font-medium hover:underline"
-                        onClick={() =>
-                          toast({
-                            title: "Feature not available",
-                            description: "The like comment feature is not available in the current version.",
-                          })
-                        }
-                      >
-                        Like
-                      </button>
-                      <button
-                        className="font-medium hover:underline"
-                        onClick={() =>
-                          toast({
-                            title: "Feature not available",
-                            description: "The reply feature is not available in the current version.",
-                          })
-                        }
-                      >
-                        Reply
-                      </button>
+                    <div className="text-xs text-muted-foreground mt-1 px-3">
                       <span>{comment.time}</span>
                     </div>
                   </div>

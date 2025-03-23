@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Camera, Edit } from "lucide-react"
 import Post from "@/components/post"
 import CreatePost from "@/components/create-post"
 import Navbar from "@/components/navbar"
@@ -44,8 +43,8 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     bio: "Software Developer | Photography Enthusiast | Coffee Lover",
     coverImage: "/placeholder.svg?height=300&width=1200",
     profileImage: username === "johndoe" ? "/placeholder-user.jpg" : "/placeholder.svg?height=100&width=100",
-    friends: Math.floor(Math.random() * 500) + 100,
-    followers: Math.floor(Math.random() * 1000) + 500,
+    followers: Math.floor(Math.random() * 500) + 100,
+    following: Math.floor(Math.random() * 1000) + 500,
     location: "San Francisco, CA",
     workplace: "Tech Innovations Inc.",
     education: "Stanford University",
@@ -68,15 +67,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
         <div className="relative mb-5">
           <div className="h-[300px] w-full overflow-hidden rounded-b-lg">
             <img src={user.coverImage || "/placeholder.svg"} alt="Cover" className="w-full h-full object-cover" />
-            {username === "johndoe" && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-full"
-              >
-                <Camera className="h-5 w-5" />
-              </Button>
-            )}
           </div>
 
           <div className="container max-w-7xl px-4 md:px-6">
@@ -86,36 +76,20 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   <AvatarImage src={user.profileImage} alt={user.name} />
                   <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
-                {username === "johndoe" && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute bottom-0 right-0 bg-black/50 hover:bg-black/70 text-white rounded-full"
-                  >
-                    <Camera className="h-4 w-4" />
-                  </Button>
-                )}
               </div>
 
               <div className="flex-1">
                 <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
                   <div>
                     <h1 className="text-2xl md:text-3xl font-bold">{user.name}</h1>
-                    <p className="text-muted-foreground">{user.friends} friends</p>
+                    <p className="text-muted-foreground">{user.followers} followers</p>
                   </div>
 
                   <div className="flex gap-2">
-                    {username === "johndoe" ? (
-                      <Button className="gap-2">
-                        <Edit className="h-4 w-4" />
-                        <span>Edit Profile</span>
+                    {username !== "johndoe" && (
+                      <Button className="gap-2" onClick={() => setIsFollowing(!isFollowing)}>
+                        {isFollowing ? "Following ✓" : "Follow"}
                       </Button>
-                    ) : (
-                      <>
-                        <Button className="gap-2" onClick={() => setIsFollowing(!isFollowing)}>
-                          {isFollowing ? "Following ✓" : "Follow"}
-                        </Button>
-                      </>
                     )}
                   </div>
                 </div>
@@ -162,7 +136,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
+                        d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998a12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
                       />
                     </svg>
                     <span>Studied at {user.education}</span>
@@ -207,11 +181,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     </svg>
                     <span>Joined {user.joined}</span>
                   </div>
-                  {username === "johndoe" && (
-                    <Button variant="outline" className="w-full">
-                      Edit Details
-                    </Button>
-                  )}
                 </div>
               </div>
             </div>
@@ -298,12 +267,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                               stroke="currentColor"
                             >
                               <path d="M12 14l9-5-9-5-9 5 9 5z" />
-                              <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                              <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998a12.078 12.078 0 01.665-6.479L12 14z" />
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
+                                d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998a12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
                               />
                             </svg>
                             <div>

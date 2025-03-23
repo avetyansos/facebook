@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, X } from "lucide-react"
+import { Check, MoreHorizontal, X } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
@@ -16,61 +16,104 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ToastAction } from "@/components/ui/toast"
 import { useToast } from "@/hooks/use-toast"
+
+interface FollowRequest {
+  id: number
+  name: string
+  mutualFollowers: number
+  avatar: string
+  initials: string
+  deleted?: boolean
+}
 
 interface RightSidebarProps {
   className?: string
 }
 
 export default function RightSidebar({ className }: RightSidebarProps) {
-  const [friendRequests, setFriendRequests] = useState([
-    { id: 1, name: "Jessica Taylor", mutualFriends: 3, avatar: "/placeholder.svg?height=40&width=40", initials: "JT" },
-    { id: 2, name: "Robert Wilson", mutualFriends: 1, avatar: "/placeholder.svg?height=40&width=40", initials: "RW" },
+  const [followRequests, setFollowRequests] = useState<FollowRequest[]>([
+    {
+      id: 1,
+      name: "Jessica Taylor",
+      mutualFollowers: 3,
+      avatar: "/placeholder.svg?height=40&width=40",
+      initials: "JT",
+      deleted: false,
+    },
+    {
+      id: 2,
+      name: "Robert Wilson",
+      mutualFollowers: 1,
+      avatar: "/placeholder.svg?height=40&width=40",
+      initials: "RW",
+      deleted: false,
+    },
   ])
-
-  const [activeTab, setActiveTab] = useState("contacts")
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState<number | null>(null)
   const { toast } = useToast()
 
-  const handleAcceptFriend = (id: number) => {
+  const handleAcceptFollow = (id: number) => {
     setSelectedRequest(id)
     setConfirmDialogOpen(true)
   }
 
-  const handleDeleteFriend = (id: number) => {
+  const handleDeleteFollow = (id: number) => {
     setSelectedRequest(id)
     setDeleteDialogOpen(true)
   }
 
-  const confirmAcceptFriend = () => {
+  const confirmAcceptFollow = () => {
     if (selectedRequest !== null) {
-      const requestName = friendRequests.find((r) => r.id === selectedRequest)?.name || "User"
-      setFriendRequests(friendRequests.filter((request) => request.id !== selectedRequest))
+      const requestName = followRequests.find((r) => r.id === selectedRequest)?.name || "User"
+      // Mark as accepted instead of removing
+      setFollowRequests(
+        followRequests.map((request) => (request.id === selectedRequest ? { ...request, deleted: true } : request)),
+      )
       setConfirmDialogOpen(false)
 
       toast({
-        title: "Friend request accepted",
-        description: `You are now friends with ${requestName}`,
+        title: "Follow request accepted",
+        description: `You are now following ${requestName}`,
         action: <ToastAction altText="Dismiss">Dismiss</ToastAction>,
       })
     }
   }
 
-  const confirmDeleteFriend = () => {
+  const confirmDeleteFollow = () => {
     if (selectedRequest !== null) {
-      const requestName = friendRequests.find((r) => r.id === selectedRequest)?.name || "User"
-      setFriendRequests(friendRequests.filter((request) => request.id !== selectedRequest))
-      setDeleteDialogOpen(false)
+      const request = followRequests.find((r) => r.id === selectedRequest)
+      if (request) {
+        // Mark as deleted instead of removing from array
+        setFollowRequests(followRequests.map((r) => (r.id === selectedRequest ? { ...r, deleted: true } : r)))
+        setDeleteDialogOpen(false)
 
-      toast({
-        title: "Friend request deleted",
-        description: `Friend request from ${requestName} has been deleted`,
-        action: <ToastAction altText="Dismiss">Dismiss</ToastAction>,
-      })
+        toast({
+          title: "Follow request deleted",
+          description: `Follow request from ${request.name} has been deleted`,
+          action: (
+            <ToastAction altText="Undo" onClick={() => undoDeleteRequest(request.id)}>
+              Undo
+            </ToastAction>
+          ),
+        })
+      }
     }
+  }
+
+  const undoDeleteRequest = (id: number) => {
+    // Simply mark as not deleted
+    setFollowRequests(followRequests.map((request) => (request.id === id ? { ...request, deleted: false } : request)))
+
+    const requestName = followRequests.find((r) => r.id === id)?.name || "User"
+    toast({
+      title: "Follow request restored",
+      description: `Follow request from ${requestName} has been restored`,
+    })
   }
 
   // Create a function to generate a username from a name
@@ -78,16 +121,19 @@ export default function RightSidebar({ className }: RightSidebarProps) {
     return name.toLowerCase().replace(/\s+/g, "")
   }
 
+  // Filter requests to show only non-deleted ones
+  const activeRequests = followRequests.filter((request) => !request.deleted)
+
   return (
     <aside className={cn("py-4", className)}>
       <div className="space-y-6">
-        <Tabs defaultValue="contacts" onValueChange={setActiveTab}>
-          <TabsList className="w-full">
+        <Tabs defaultValue="contacts">
+          <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="contacts" className="flex-1">
               Contacts
             </TabsTrigger>
             <TabsTrigger value="requests" className="flex-1">
-              Friend Requests
+              Requests {activeRequests.length > 0 && `(${activeRequests.length})`}
             </TabsTrigger>
           </TabsList>
 
@@ -135,43 +181,55 @@ export default function RightSidebar({ className }: RightSidebarProps) {
           <TabsContent value="requests">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Friend Requests</CardTitle>
+                <CardTitle className="text-lg">Follow Requests</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {friendRequests.length > 0 ? (
-                  friendRequests.map((request) => (
-                    <div key={request.id} className="flex items-start gap-3">
-                      <Link href={`/profile/${generateUsername(request.name)}`}>
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={request.avatar} alt={request.name} />
-                          <AvatarFallback>{request.initials}</AvatarFallback>
-                        </Avatar>
-                      </Link>
-                      <div className="flex-1">
-                        <div className="font-medium">
-                          <Link href={`/profile/${generateUsername(request.name)}`} className="hover:underline">
-                            {request.name}
-                          </Link>
+              <CardContent>
+                {activeRequests.length > 0 ? (
+                  <div className="space-y-4">
+                    {activeRequests.map((request) => (
+                      <div key={request.id} className="p-4 border rounded-lg relative">
+                        {/* Three-dot menu in top right corner */}
+                        <div className="absolute top-2 right-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleAcceptFollow(request.id)}>
+                                <Check className="mr-2 h-4 w-4" />
+                                <span>Confirm</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDeleteFollow(request.id)}>
+                                <X className="mr-2 h-4 w-4" />
+                                <span>Delete</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        <div className="text-xs text-muted-foreground">{request.mutualFriends} mutual friends</div>
-                        <div className="flex gap-2 mt-2">
-                          <Button size="sm" className="h-8" onClick={() => handleAcceptFriend(request.id)}>
-                            Confirm
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8"
-                            onClick={() => handleDeleteFriend(request.id)}
-                          >
-                            Delete
-                          </Button>
+
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                          <Link href={`/profile/${generateUsername(request.name)}`} className="shrink-0">
+                            <Avatar className="h-16 w-16">
+                              <AvatarImage src={request.avatar} alt={request.name} />
+                              <AvatarFallback>{request.initials}</AvatarFallback>
+                            </Avatar>
+                          </Link>
+                          <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left">
+                            <div className="font-medium text-lg">
+                              <Link href={`/profile/${generateUsername(request.name)}`} className="hover:underline">
+                                {request.name}
+                              </Link>
+                            </div>
+                            <div className="text-muted-foreground">{request.mutualFollowers} mutual followers</div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 ) : (
-                  <div className="text-center py-4 text-muted-foreground">No friend requests to display</div>
+                  <div className="text-center py-4 text-muted-foreground">No follow requests to display</div>
                 )}
               </CardContent>
             </Card>
@@ -179,21 +237,21 @@ export default function RightSidebar({ className }: RightSidebarProps) {
         </Tabs>
       </div>
 
-      {/* Confirm Friend Request Dialog */}
+      {/* Confirm Follow Request Dialog */}
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Friend Request</DialogTitle>
+            <DialogTitle>Confirm Follow Request</DialogTitle>
             <DialogDescription>
               {selectedRequest !== null &&
-                `Are you sure you want to accept the friend request from ${friendRequests.find((r) => r.id === selectedRequest)?.name}?`}
+                `Are you sure you want to accept the follow request from ${followRequests.find((r) => r.id === selectedRequest)?.name}?`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-end">
             <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={confirmAcceptFriend} className="gap-2">
+            <Button onClick={confirmAcceptFollow} className="gap-2">
               <Check className="h-4 w-4" />
               Confirm
             </Button>
@@ -201,21 +259,21 @@ export default function RightSidebar({ className }: RightSidebarProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Friend Request Dialog */}
+      {/* Delete Follow Request Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Friend Request</DialogTitle>
+            <DialogTitle>Delete Follow Request</DialogTitle>
             <DialogDescription>
               {selectedRequest !== null &&
-                `Are you sure you want to delete the friend request from ${friendRequests.find((r) => r.id === selectedRequest)?.name}?`}
+                `Are you sure you want to delete the follow request from ${followRequests.find((r) => r.id === selectedRequest)?.name}?`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-end">
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmDeleteFriend} className="gap-2">
+            <Button variant="destructive" onClick={confirmDeleteFollow} className="gap-2">
               <X className="h-4 w-4" />
               Delete
             </Button>
