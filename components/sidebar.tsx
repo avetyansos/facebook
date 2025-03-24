@@ -42,11 +42,11 @@ export default function Sidebar({ className }: SidebarProps) {
             <span>Home</span>
           </Link>
           <Link
-            href="/friends"
+            href="/followers"
             className="flex items-center gap-3 rounded-md py-2 text-foreground hover:bg-muted transition-colors"
           >
             <Users className="h-5 w-5 text-primary" />
-            <span>Friends</span>
+            <span>Followers</span>
           </Link>
         </div>
 

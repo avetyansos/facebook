@@ -126,12 +126,12 @@ export default function Post({
           </div>
         </div>
 
-        <div className="flex justify-between w-full pt-1">
+        <div className="flex flex-col sm:flex-row justify-between w-full pt-1 gap-2">
           <Button variant="ghost" className={`flex-1 gap-2 ${liked ? "text-primary" : ""}`} onClick={handleLike}>
             <ThumbsUp className="h-5 w-5" />
             <span>Like</span>
           </Button>
-          <Button variant="ghost" className="flex-1 gap-2" onClick={() => setShowComments(!showComments)}>
+          <Button variant="ghost" className="flex-1 gap-2 w-full" onClick={() => setShowComments(!showComments)}>
             <MessageCircle className="h-5 w-5" />
             <span>Comment</span>
           </Button>
@@ -151,8 +151,8 @@ export default function Post({
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                 />
-                <div className="flex justify-end mt-2">
-                  <Button type="submit" size="sm" disabled={!commentText.trim()}>
+                <div className="flex justify-end mt-2 w-full">
+                  <Button type="submit" size="sm" disabled={!commentText.trim()} className="w-full sm:w-auto">
                     Comment
                   </Button>
                 </div>
