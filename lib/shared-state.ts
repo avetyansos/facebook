@@ -170,7 +170,7 @@ export function followUser(user: User): void {
     })
   }
 
-  // Remove from suggestions if present
+  // Update in suggestions if present
   const suggestionIndex = globalSuggestions.findIndex((s) => s.name.toLowerCase() === user.name.toLowerCase())
 
   if (suggestionIndex !== -1) {

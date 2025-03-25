@@ -8,7 +8,7 @@ import Post from "@/components/post"
 import CreatePost from "@/components/create-post"
 import Navbar from "@/components/navbar"
 import { useToast } from "@/hooks/use-toast"
-import { globalUsers, isUserFollowed, followUser, unfollowUser } from "@/lib/shared-state"
+import { globalUsers, globalSuggestions, isUserFollowed, followUser, unfollowUser } from "@/lib/shared-state"
 
 interface ProfilePageProps {
   params: {
@@ -79,6 +79,24 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       }
     }
 
+    // Also check in globalSuggestions
+    if (!foundUser) {
+      const matchedSuggestion = globalSuggestions.find((user) => {
+        const userUsername = user.name.toLowerCase().replace(/\s+/g, "")
+        return userUsername === username.toLowerCase()
+      })
+
+      if (matchedSuggestion) {
+        setDisplayName(matchedSuggestion.name)
+        setProfileData((prev) => ({
+          ...prev,
+          name: matchedSuggestion.name,
+          profileImage: matchedSuggestion.avatar || prev.profileImage,
+        }))
+        foundUser = true
+      }
+    }
+
     // If still not found, generate a display name from the username
     if (!foundUser) {
       const generatedName = username
@@ -107,6 +125,18 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     }
   }, [displayName])
 
+  // Periodically check follow status to keep it in sync
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (displayName) {
+        const followed = isUserFollowed(displayName)
+        setIsFollowing(followed)
+      }
+    }, 1000)
+
+    return () => clearInterval(intervalId)
+  }, [displayName])
+
   const handleFollowToggle = () => {
     const newFollowingState = !isFollowing
     setIsFollowing(newFollowingState)
@@ -120,6 +150,13 @@ export default function ProfilePage({ params }: ProfilePageProps) {
         isFollowing: true,
         avatar: profileData.profileImage,
       })
+
+      // Also update in globalSuggestions if present
+      const suggestionIndex = globalSuggestions.findIndex((s) => s.name.toLowerCase() === displayName.toLowerCase())
+
+      if (suggestionIndex !== -1) {
+        globalSuggestions[suggestionIndex].isFollowing = true
+      }
 
       toast({
         title: "Following",

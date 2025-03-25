@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { globalUsers, globalSuggestions } from "@/lib/shared-state"
+import { globalUsers, globalSuggestions, followUser } from "@/lib/shared-state"
 
 interface RightSidebarProps {
   className?: string
@@ -26,8 +26,8 @@ export default function RightSidebar({ className }: RightSidebarProps) {
   const [suggestions, setSuggestions] = useState<Contact[]>([])
   const { toast } = useToast()
 
-  // Sync with global state on mount and when it changes
-  useEffect(() => {
+  // Function to refresh data from global state
+  const refreshData = () => {
     // Get all followed users from global state
     const followingUsers = globalUsers
       .filter((user) => user.isFollowing)
@@ -54,7 +54,42 @@ export default function RightSidebar({ className }: RightSidebarProps) {
 
     setAllFollowing(followingUsers)
     setSuggestions(suggestionUsers)
+  }
+
+  // Sync with global state on mount and when it changes
+  useEffect(() => {
+    refreshData()
+
+    // Set up an interval to refresh data periodically
+    const intervalId = setInterval(refreshData, 2000)
+
+    // Clean up interval on unmount
+    return () => clearInterval(intervalId)
   }, [])
+
+  // Handle follow action
+  const handleFollow = (id: number) => {
+    const user = suggestions.find((s) => s.id === id)
+    if (user) {
+      // Update local state immediately
+      setSuggestions((prev) => prev.filter((s) => s.id !== id))
+      setAllFollowing((prev) => [...prev, { ...user, isFollowing: true }])
+
+      // Update global state
+      followUser({
+        id: user.id,
+        name: user.name,
+        mutualFollowers: user.mutualFollowers || 0,
+        isFollowing: true,
+        avatar: user.avatar,
+      })
+
+      toast({
+        title: "Following",
+        description: `You are now following ${user.name}`,
+      })
+    }
+  }
 
   // Create a function to generate a username from a name
   const generateUsername = (name: string) => {
@@ -65,8 +100,6 @@ export default function RightSidebar({ className }: RightSidebarProps) {
     <aside className={cn("pt-0", className)}>
       <div className="space-y-6">
         <Card className="mt-0">
-          {" "}
-          {/* Removed top margin */}
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Following</CardTitle>
           </CardHeader>
@@ -116,10 +149,10 @@ export default function RightSidebar({ className }: RightSidebarProps) {
             {suggestions.length > 0 ? (
               <div className="space-y-3">
                 {suggestions.map((contact) => (
-                  <div key={contact.id}>
+                  <div key={contact.id} className="flex items-center justify-between">
                     <Link
                       href={`/profile/${generateUsername(contact.name)}`}
-                      className="flex items-center gap-3 rounded-md py-2 px-2 w-full text-foreground hover:bg-muted transition-colors"
+                      className="flex items-center gap-3 rounded-md py-2 px-2 text-foreground hover:bg-muted transition-colors"
                     >
                       <div className="relative">
                         <Avatar>
