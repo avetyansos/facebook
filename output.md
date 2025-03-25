@@ -36,6 +36,267 @@ export default function Error({
 
 ```
 
+```tsx file="app/followers/loading.tsx"
+export default function FollowersLoading() {
+  return (
+    <div className="p-8 flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+        <p className="mt-2">Loading followers...</p>
+      </div>
+    </div>
+  )
+}
+
+
+```
+
+```tsx file="app/followers/page.tsx"
+"use client"
+
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Navbar from "@/components/navbar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
+import { globalUsers, globalSuggestions, followUser, unfollowUser } from "@/lib/shared-state"
+
+export default function FollowersPage() {
+  const [following, setFollowing] = useState<typeof globalUsers>([])
+  const [suggestions, setSuggestions] = useState<typeof globalSuggestions>([])
+  const [unfollowDialogOpen, setUnfollowDialogOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<number | null>(null)
+  const { toast } = useToast()
+
+  // Update local state when component mounts or when returning to this page
+  useEffect(() => {
+    // Get all followed users
+    setFollowing(globalUsers.filter((user) => user.isFollowing))
+
+    // Get all suggestions
+    setSuggestions([
+      ...globalSuggestions.filter((user) => !user.isFollowing),
+      ...globalUsers.filter((user) => !user.isFollowing && !user.isDeleted),
+    ])
+  }, [])
+
+  const handleUnfollow = (id: number) => {
+    setSelectedUser(id)
+    setUnfollowDialogOpen(true)
+  }
+
+  const handleFollow = (id: number) => {
+    const user = suggestions.find((u) => u.id === id)
+    if (!user) return
+
+    // Update local state
+    setSuggestions((prev) => prev.filter((s) => s.id !== id))
+    setFollowing((prev) => [...prev, { ...user, isFollowing: true }])
+
+    // Update global state
+    followUser(user)
+
+    toast({
+      title: "Following",
+      description: `You are now following ${user.name}`,
+    })
+  }
+
+  const confirmUnfollow = () => {
+    if (selectedUser !== null) {
+      const user = following.find((u) => u.id === selectedUser)
+      if (!user) return
+
+      // Update local state
+      setFollowing((prev) => prev.filter((f) => f.id !== selectedUser))
+      setSuggestions((prev) => [...prev, { ...user, isFollowing: false }])
+
+      // Update global state
+      unfollowUser(user.name)
+
+      setUnfollowDialogOpen(false)
+
+      // Show toast with Undo action
+      toast({
+        title: "Unfollowed",
+        description: `You are no longer following ${user.name}`,
+        action: (
+          <ToastAction altText="Undo" onClick={() => undoUnfollow(user)}>
+            Undo
+          </ToastAction>
+        ),
+      })
+    }
+  }
+
+  // Function to undo unfollowing
+  const undoUnfollow = (user: (typeof globalUsers)[0]) => {
+    // Update local state
+    setSuggestions((prev) => prev.filter((s) => s.id !== user.id))
+    setFollowing((prev) => [...prev, { ...user, isFollowing: true }])
+
+    // Update global state
+    followUser(user)
+
+    toast({
+      title: "Following restored",
+      description: `You are following ${user.name} again`,
+    })
+  }
+
+  // Function to generate username from name
+  const generateUsername = (name: string) => {
+    return name.toLowerCase().replace(/\s+/g, "")
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="container mx-auto max-w-7xl py-8 pt-24 px-4 md:px-6">
+        <Tabs defaultValue="following">
+          <div className="mb-6 flex justify-center md:justify-start">
+            {/* Responsive TabsList - default width on larger screens, full width on mobile */}
+            <TabsList className="md:w-auto w-full grid grid-cols-2">
+              <TabsTrigger value="following" className="md:w-auto w-full">
+                Following
+              </TabsTrigger>
+              <TabsTrigger value="suggestions" className="md:w-auto w-full">
+                Suggestions
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="following">
+            <Card>
+              <CardHeader>
+                <CardTitle>Following ({following.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {following.map((user) => (
+                    <div key={user.id} className="flex flex-col items-center p-4 border rounded-lg">
+                      <Link href={`/profile/${generateUsername(user.name)}`}>
+                        <Avatar className="h-16 w-16 mb-3">
+                          <AvatarImage src={user.avatar} alt={user.name} />
+                          <AvatarFallback>
+                            {user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
+                      <div className="text-center">
+                        <Link href={`/profile/${generateUsername(user.name)}`} className="font-medium hover:underline">
+                          {user.name}
+                        </Link>
+                        <div className="text-sm text-muted-foreground">{user.mutualFollowers} mutual followers</div>
+                      </div>
+                      <Button variant="outline" className="mt-3 w-full" onClick={() => handleUnfollow(user.id)}>
+                        Unfollow
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {following.length === 0 && (
+                  <div className="text-center py-10 text-muted-foreground">You are not following anyone yet</div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="suggestions">
+            <Card>
+              <CardHeader>
+                <CardTitle>Suggested Accounts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {suggestions.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {suggestions.map((user) => (
+                      <div key={user.id} className="p-4 border rounded-lg relative">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                          <Link href={`/profile/${generateUsername(user.name)}`} className="shrink-0">
+                            <Avatar className="h-16 w-16">
+                              <AvatarImage src={user.avatar} alt={user.name} />
+                              <AvatarFallback>
+                                {user.name
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                          </Link>
+                          <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left">
+                            <div className="font-medium text-lg">
+                              <Link href={`/profile/${generateUsername(user.name)}`} className="hover:underline">
+                                {user.name}
+                              </Link>
+                            </div>
+                            <div className="text-muted-foreground">{user.mutualFollowers} mutual followers</div>
+
+                            <div className="mt-3 w-full">
+                              <Button
+                                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                                onClick={() => handleFollow(user.id)}
+                              >
+                                Follow
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 text-muted-foreground">No suggestions found</div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Unfollow Dialog */}
+      <Dialog open={unfollowDialogOpen} onOpenChange={setUnfollowDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unfollow</DialogTitle>
+            <DialogDescription>
+              {selectedUser !== null &&
+                `Are you sure you want to unfollow ${following.find((u) => u.id === selectedUser)?.name}?`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            <Button variant="outline" onClick={() => setUnfollowDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmUnfollow}>
+              Unfollow
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+
+```
+
 ```tsx file="app/friends/loading.tsx"
 export default function FriendsLoading() {
   return (
@@ -54,15 +315,12 @@ export default function FriendsLoading() {
 ```tsx file="app/friends/page.tsx"
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Check, X } from "lucide-react"
+import { Check, X } from "lucide-react"
 import Navbar from "@/components/navbar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -76,110 +334,163 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 
-interface Friend {
+interface User {
   id: number
   name: string
-  mutualFriends: number
-  isFriend: boolean
+  mutualFollowers: number
+  isFollowing: boolean
+  isRequested?: boolean
+  isDeleted?: boolean
   avatar?: string
 }
 
-export default function FriendsPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [friends, setFriends] = useState<Friend[]>([
-    { id: 1, name: "Sarah Johnson", mutualFriends: 5, isFriend: true, avatar: "/placeholder.svg?height=100&width=100" },
-    { id: 2, name: "Michael Brown", mutualFriends: 3, isFriend: true, avatar: "/placeholder.svg?height=100&width=100" },
-    { id: 3, name: "Emily Smith", mutualFriends: 7, isFriend: true, avatar: "/placeholder.svg?height=100&width=100" },
-    { id: 4, name: "David Wilson", mutualFriends: 2, isFriend: false, avatar: "/placeholder.svg?height=100&width=100" },
+export default function ConnectionsPage() {
+  const [users, setUsers] = useState<User[]>([
+    {
+      id: 1,
+      name: "Sarah Johnson",
+      mutualFollowers: 5,
+      isFollowing: true,
+      isDeleted: false,
+      avatar: "/placeholder.svg?height=100&width=100",
+    },
+    {
+      id: 2,
+      name: "Michael Brown",
+      mutualFollowers: 3,
+      isFollowing: true,
+      isDeleted: false,
+      avatar: "/placeholder.svg?height=100&width=100",
+    },
+    {
+      id: 3,
+      name: "Emily Smith",
+      mutualFollowers: 7,
+      isFollowing: true,
+      isDeleted: false,
+      avatar: "/placeholder.svg?height=100&width=100",
+    },
+    {
+      id: 4,
+      name: "David Wilson",
+      mutualFollowers: 2,
+      isFollowing: false,
+      isRequested: true,
+      isDeleted: false,
+      avatar: "/placeholder.svg?height=100&width=100",
+    },
     {
       id: 5,
       name: "Jessica Taylor",
-      mutualFriends: 9,
-      isFriend: false,
+      mutualFollowers: 9,
+      isFollowing: false,
+      isRequested: true,
+      isDeleted: false,
       avatar: "/placeholder.svg?height=100&width=100",
     },
     {
       id: 6,
       name: "Robert Miller",
-      mutualFriends: 4,
-      isFriend: false,
+      mutualFollowers: 4,
+      isFollowing: false,
+      isRequested: false,
+      isDeleted: false,
       avatar: "/placeholder.svg?height=100&width=100",
     },
   ])
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [unfriendDialogOpen, setUnfriendDialogOpen] = useState(false)
-  const [selectedFriend, setSelectedFriend] = useState<number | null>(null)
+  const [unfollowDialogOpen, setUnfollowDialogOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<number | null>(null)
   const { toast } = useToast()
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      toast({
-        title: "Search Not Available",
-        description: "The search functionality is not implemented in this version.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleAddFriend = (id: number) => {
-    setSelectedFriend(id)
+  const handleAcceptRequest = (id: number) => {
+    setSelectedUser(id)
     setConfirmDialogOpen(true)
   }
 
   const handleDeleteRequest = (id: number) => {
-    setSelectedFriend(id)
+    setSelectedUser(id)
     setDeleteDialogOpen(true)
   }
 
-  const handleUnfriend = (id: number) => {
-    setSelectedFriend(id)
-    setUnfriendDialogOpen(true)
+  const handleUnfollow = (id: number) => {
+    setSelectedUser(id)
+    setUnfollowDialogOpen(true)
   }
 
-  const confirmAddFriend = () => {
-    if (selectedFriend !== null) {
-      const friendName = friends.find((f) => f.id === selectedFriend)?.name || "User"
-      setFriends(friends.map((friend) => (friend.id === selectedFriend ? { ...friend, isFriend: true } : friend)))
+  const handleFollow = (id: number) => {
+    const userName = users.find((u) => u.id === id)?.name || "User"
+    setUsers(users.map((user) => (user.id === id ? { ...user, isFollowing: true } : user)))
+
+    toast({
+      title: "Following",
+      description: `You are now following ${userName}`,
+    })
+  }
+
+  const confirmAcceptRequest = () => {
+    if (selectedUser !== null) {
+      const userName = users.find((u) => u.id === selectedUser)?.name || "User"
+      setUsers(
+        users.map((user) => (user.id === selectedUser ? { ...user, isFollowing: true, isRequested: false } : user)),
+      )
       setConfirmDialogOpen(false)
 
       toast({
-        title: "Friend request accepted",
-        description: `You are now friends with ${friendName}`,
+        title: "Follow request accepted",
+        description: `You are now following ${userName}`,
       })
     }
   }
 
   const confirmDeleteRequest = () => {
-    if (selectedFriend !== null) {
-      const friendName = friends.find((f) => f.id === selectedFriend)?.name || "User"
-      // In a real app, you might want to remove the friend from the list
-      // For this demo, we'll just keep them in the list
-      setDeleteDialogOpen(false)
+    if (selectedUser !== null) {
+      const user = users.find((u) => u.id === selectedUser)
+      if (user) {
+        // Mark as deleted instead of removing from the list
+        setUsers(users.map((u) => (u.id === selectedUser ? { ...u, isDeleted: true } : u)))
+        setDeleteDialogOpen(false)
 
-      toast({
-        title: "Friend request deleted",
-        description: `Friend request from ${friendName} has been deleted`,
-      })
+        toast({
+          title: "Request deleted",
+          description: `Follow request from ${user.name} has been deleted`,
+          action: (
+            <ToastAction altText="Undo" onClick={() => undoDeleteRequest(user.id)}>
+              Undo
+            </ToastAction>
+          ),
+        })
+      }
     }
   }
 
-  const confirmUnfriend = () => {
-    if (selectedFriend !== null) {
-      const friendName = friends.find((f) => f.id === selectedFriend)?.name || "User"
-      const friendId = selectedFriend
+  const undoDeleteRequest = (id: number) => {
+    // Mark as not deleted to restore it
+    setUsers(users.map((u) => (u.id === id ? { ...u, isDeleted: false } : u)))
 
-      // Update the friends list
-      setFriends(friends.map((friend) => (friend.id === selectedFriend ? { ...friend, isFriend: false } : friend)))
-      setUnfriendDialogOpen(false)
+    const userName = users.find((u) => u.id === id)?.name || "User"
+    toast({
+      title: "Request restored",
+      description: `Follow request from ${userName} has been restored`,
+    })
+  }
+
+  const confirmUnfollow = () => {
+    if (selectedUser !== null) {
+      const userName = users.find((u) => u.id === selectedUser)?.name || "User"
+      const userId = selectedUser
+
+      // Update the users list
+      setUsers(users.map((user) => (user.id === selectedUser ? { ...user, isFollowing: false } : user)))
+      setUnfollowDialogOpen(false)
 
       // Show toast with Undo action
       toast({
-        title: "Friend removed",
-        description: `You are no longer friends with ${friendName}`,
+        title: "Unfollowed",
+        description: `You are no longer following ${userName}`,
         action: (
-          <ToastAction altText="Undo" onClick={() => undoUnfriend(friendId)}>
+          <ToastAction altText="Undo" onClick={() => undoUnfollow(userId)}>
             Undo
           </ToastAction>
         ),
@@ -187,91 +498,75 @@ export default function FriendsPage() {
     }
   }
 
-  // Function to undo unfriending
-  const undoUnfriend = (id: number) => {
-    setFriends(friends.map((friend) => (friend.id === id ? { ...friend, isFriend: true } : friend)))
+  // Function to undo unfollowing
+  const undoUnfollow = (id: number) => {
+    setUsers(users.map((user) => (user.id === id ? { ...user, isFollowing: true } : user)))
 
-    const friendName = friends.find((f) => f.id === id)?.name || "User"
+    const userName = users.find((u) => u.id === id)?.name || "User"
     toast({
-      title: "Friend restored",
-      description: `You are friends with ${friendName} again`,
+      title: "Following restored",
+      description: `You are following ${userName} again`,
     })
   }
-
-  const filteredFriends = searchQuery.trim()
-    ? friends.filter((friend) => friend.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : friends
 
   // Function to generate username from name
   const generateUsername = (name: string) => {
     return name.toLowerCase().replace(/\s+/g, "")
   }
 
+  // Filter users for each tab
+  const following = users.filter((user) => user.isFollowing)
+  const requests = users.filter((user) => !user.isFollowing && user.isRequested && !user.isDeleted)
+  const suggestions = users.filter((user) => !user.isFollowing && !user.isRequested).slice(0, 3)
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto max-w-7xl py-8 pt-24 px-4 md:px-6">
-        <Tabs defaultValue="all">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-            <TabsList>
-              <TabsTrigger value="all">All Friends</TabsTrigger>
-              <TabsTrigger value="requests">Friend Requests</TabsTrigger>
+        <Tabs defaultValue="following">
+          <div className="mb-6">
+            <TabsList className="w-full grid grid-cols-3">
+              <TabsTrigger value="following">Following</TabsTrigger>
+              <TabsTrigger value="requests">Requests</TabsTrigger>
               <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
             </TabsList>
-
-            <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search friends"
-                className="pl-9 w-full md:w-[250px]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </form>
           </div>
 
-          <TabsContent value="all">
+          <TabsContent value="following">
             <Card>
               <CardHeader>
-                <CardTitle>All Friends ({friends.filter((f) => f.isFriend).length})</CardTitle>
+                <CardTitle>Following ({following.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {filteredFriends
-                    .filter((friend) => friend.isFriend)
-                    .map((friend) => (
-                      <div key={friend.id} className="flex flex-col items-center p-4 border rounded-lg">
-                        <Link href={`/profile/${generateUsername(friend.name)}`}>
-                          <Avatar className="h-16 w-16 mb-3">
-                            <AvatarImage src={friend.avatar} alt={friend.name} />
-                            <AvatarFallback>
-                              {friend.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </AvatarFallback>
-                          </Avatar>
+                  {following.map((user) => (
+                    <div key={user.id} className="flex flex-col items-center p-4 border rounded-lg">
+                      <Link href={`/profile/${generateUsername(user.name)}`}>
+                        <Avatar className="h-16 w-16 mb-3">
+                          <AvatarImage src={user.avatar} alt={user.name} />
+                          <AvatarFallback>
+                            {user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
+                      <div className="text-center">
+                        <Link href={`/profile/${generateUsername(user.name)}`} className="font-medium hover:underline">
+                          {user.name}
                         </Link>
-                        <div className="text-center">
-                          <Link
-                            href={`/profile/${generateUsername(friend.name)}`}
-                            className="font-medium hover:underline"
-                          >
-                            {friend.name}
-                          </Link>
-                          <div className="text-sm text-muted-foreground">{friend.mutualFriends} mutual friends</div>
-                        </div>
-                        <Button variant="outline" className="mt-3 w-full" onClick={() => handleUnfriend(friend.id)}>
-                          Unfriend
-                        </Button>
+                        <div className="text-sm text-muted-foreground">{user.mutualFollowers} mutual followers</div>
                       </div>
-                    ))}
+                      <Button variant="outline" className="mt-3 w-full" onClick={() => handleUnfollow(user.id)}>
+                        Unfollow
+                      </Button>
+                    </div>
+                  ))}
                 </div>
 
-                {filteredFriends.filter((friend) => friend.isFriend).length === 0 && (
-                  <div className="text-center py-10 text-muted-foreground">
-                    {searchQuery ? "No friends match your search" : "You have no friends yet"}
-                  </div>
+                {following.length === 0 && (
+                  <div className="text-center py-10 text-muted-foreground">You are not following anyone yet</div>
                 )}
               </CardContent>
             </Card>
@@ -280,49 +575,53 @@ export default function FriendsPage() {
           <TabsContent value="requests">
             <Card>
               <CardHeader>
-                <CardTitle>Friend Requests</CardTitle>
+                <CardTitle>Follow Requests</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {filteredFriends
-                    .filter((friend) => !friend.isFriend)
-                    .slice(0, 2)
-                    .map((friend) => (
-                      <div key={friend.id} className="flex flex-col items-center p-4 border rounded-lg">
-                        <Link href={`/profile/${generateUsername(friend.name)}`}>
-                          <Avatar className="h-16 w-16 mb-3">
-                            <AvatarImage src={friend.avatar} alt={friend.name} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {requests.map((user) => (
+                    <div key={user.id} className="p-4 border rounded-lg relative">
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                        <Link href={`/profile/${generateUsername(user.name)}`} className="shrink-0">
+                          <Avatar className="h-16 w-16">
+                            <AvatarImage src={user.avatar} alt={user.name} />
                             <AvatarFallback>
-                              {friend.name
+                              {user.name
                                 .split(" ")
                                 .map((n) => n[0])
                                 .join("")}
                             </AvatarFallback>
                           </Avatar>
                         </Link>
-                        <div className="text-center">
-                          <Link
-                            href={`/profile/${generateUsername(friend.name)}`}
-                            className="font-medium hover:underline"
-                          >
-                            {friend.name}
-                          </Link>
-                          <div className="text-sm text-muted-foreground">{friend.mutualFriends} mutual friends</div>
-                        </div>
-                        <div className="flex gap-2 mt-3 w-full">
-                          <Button className="flex-1" onClick={() => handleAddFriend(friend.id)}>
-                            Confirm
-                          </Button>
-                          <Button variant="outline" className="flex-1" onClick={() => handleDeleteRequest(friend.id)}>
-                            Delete
-                          </Button>
+                        <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left">
+                          <div className="font-medium text-lg">
+                            <Link href={`/profile/${generateUsername(user.name)}`} className="hover:underline">
+                              {user.name}
+                            </Link>
+                          </div>
+                          <div className="text-muted-foreground">{user.mutualFollowers} mutual followers</div>
+
+                          <div className="flex gap-2 mt-3 w-full">
+                            <Button
+                              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                              onClick={() => handleAcceptRequest(user.id)}
+                            >
+                              <Check className="mr-2 h-4 w-4 md:hidden" />
+                              <span>Confirm</span>
+                            </Button>
+                            <Button variant="outline" className="flex-1" onClick={() => handleDeleteRequest(user.id)}>
+                              <X className="mr-2 h-4 w-4 md:hidden" />
+                              <span>Delete</span>
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
                 </div>
 
-                {filteredFriends.filter((friend) => !friend.isFriend).length === 0 && (
-                  <div className="text-center py-10 text-muted-foreground">No friend requests to display</div>
+                {requests.length === 0 && (
+                  <div className="text-center py-10 text-muted-foreground">No follow requests to display</div>
                 )}
               </CardContent>
             </Card>
@@ -331,40 +630,44 @@ export default function FriendsPage() {
           <TabsContent value="suggestions">
             <Card>
               <CardHeader>
-                <CardTitle>Suggested Friends</CardTitle>
+                <CardTitle>Suggested Accounts</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {filteredFriends
-                    .filter((friend) => !friend.isFriend)
-                    .slice(1, 4)
-                    .map((friend) => (
-                      <div key={friend.id} className="flex flex-col items-center p-4 border rounded-lg">
-                        <Link href={`/profile/${generateUsername(friend.name)}`}>
-                          <Avatar className="h-16 w-16 mb-3">
-                            <AvatarImage src={friend.avatar} alt={friend.name} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {suggestions.map((user) => (
+                    <div key={user.id} className="p-4 border rounded-lg relative">
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                        <Link href={`/profile/${generateUsername(user.name)}`} className="shrink-0">
+                          <Avatar className="h-16 w-16">
+                            <AvatarImage src={user.avatar} alt={user.name} />
                             <AvatarFallback>
-                              {friend.name
+                              {user.name
                                 .split(" ")
                                 .map((n) => n[0])
                                 .join("")}
                             </AvatarFallback>
                           </Avatar>
                         </Link>
-                        <div className="text-center">
-                          <Link
-                            href={`/profile/${generateUsername(friend.name)}`}
-                            className="font-medium hover:underline"
-                          >
-                            {friend.name}
-                          </Link>
-                          <div className="text-sm text-muted-foreground">{friend.mutualFriends} mutual friends</div>
+                        <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left">
+                          <div className="font-medium text-lg">
+                            <Link href={`/profile/${generateUsername(user.name)}`} className="hover:underline">
+                              {user.name}
+                            </Link>
+                          </div>
+                          <div className="text-muted-foreground">{user.mutualFollowers} mutual followers</div>
+
+                          <div className="mt-3 w-full">
+                            <Button
+                              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                              onClick={() => handleFollow(user.id)}
+                            >
+                              Follow
+                            </Button>
+                          </div>
                         </div>
-                        <Button className="mt-3 w-full" onClick={() => handleAddFriend(friend.id)}>
-                          Add Friend
-                        </Button>
                       </div>
-                    ))}
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -372,21 +675,21 @@ export default function FriendsPage() {
         </Tabs>
       </div>
 
-      {/* Confirm Friend Request Dialog */}
+      {/* Confirm Follow Request Dialog */}
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Friend Request</DialogTitle>
+            <DialogTitle>Confirm Follow Request</DialogTitle>
             <DialogDescription>
-              {selectedFriend !== null &&
-                `Are you sure you want to accept the friend request from ${friends.find((f) => f.id === selectedFriend)?.name}?`}
+              {selectedUser !== null &&
+                `Are you sure you want to accept the follow request from ${users.find((u) => u.id === selectedUser)?.name}?`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-end">
             <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={confirmAddFriend} className="gap-2">
+            <Button onClick={confirmAcceptRequest} className="gap-2">
               <Check className="h-4 w-4" />
               Confirm
             </Button>
@@ -394,14 +697,14 @@ export default function FriendsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Friend Request Dialog */}
+      {/* Delete Follow Request Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Friend Request</DialogTitle>
+            <DialogTitle>Delete Follow Request</DialogTitle>
             <DialogDescription>
-              {selectedFriend !== null &&
-                `Are you sure you want to delete the friend request from ${friends.find((f) => f.id === selectedFriend)?.name}?`}
+              {selectedUser !== null &&
+                `Are you sure you want to delete the follow request from ${users.find((u) => u.id === selectedUser)?.name}?`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-end">
@@ -416,22 +719,22 @@ export default function FriendsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Unfriend Dialog */}
-      <Dialog open={unfriendDialogOpen} onOpenChange={setUnfriendDialogOpen}>
+      {/* Unfollow Dialog */}
+      <Dialog open={unfollowDialogOpen} onOpenChange={setUnfollowDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Remove Friend</DialogTitle>
+            <DialogTitle>Unfollow</DialogTitle>
             <DialogDescription>
-              {selectedFriend !== null &&
-                `Are you sure you want to remove ${friends.find((f) => f.id === selectedFriend)?.name} from your friends list?`}
+              {selectedUser !== null &&
+                `Are you sure you want to unfollow ${users.find((u) => u.id === selectedUser)?.name}?`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-end">
-            <Button variant="outline" onClick={() => setUnfriendDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setUnfollowDialogOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmUnfriend}>
-              Remove
+            <Button variant="destructive" onClick={confirmUnfollow}>
+              Unfollow
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -590,8 +893,7 @@ export default function NotificationsLoading() {
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Settings, X } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { X } from "lucide-react"
 import Navbar from "@/components/navbar"
 
 interface Notification {
@@ -662,21 +964,9 @@ export default function NotificationsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Notifications</CardTitle>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Settings className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={markAllAsRead}>Mark all as read</DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => alert("Notification settings are not available in the current version.")}
-                >
-                  Notification settings
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button variant="outline" onClick={markAllAsRead}>
+              Mark all as read
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -783,15 +1073,15 @@ export default function Loading() {
 ```tsx file="app/profile/[username]/page.tsx"
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Camera, Edit } from "lucide-react"
 import Post from "@/components/post"
 import CreatePost from "@/components/create-post"
 import Navbar from "@/components/navbar"
 import { useToast } from "@/hooks/use-toast"
+import { globalUsers, globalSuggestions, isUserFollowed, followUser, unfollowUser } from "@/lib/shared-state"
 
 interface ProfilePageProps {
   params: {
@@ -801,41 +1091,160 @@ interface ProfilePageProps {
 
 export default function ProfilePage({ params }: ProfilePageProps) {
   const { toast } = useToast()
-  // This would typically come from an API based on the username
-  // For now, we'll generate user data based on the username
   const username = params.username
-
-  // Generate a display name from the username
-  const generateDisplayName = (username: string) => {
-    // If username is johndoe, return "John Doe"
-    if (username === "johndoe") return "John Doe"
-
-    // Otherwise, try to format the username into a name
-    return username
-      .replace(/([a-z])([A-Z])/g, "$1 $2") // Insert space before capital letters
-      .split(/(?=[A-Z])/)
-      .join(" ") // Split by capital letters and join with space
-      .split(/[^a-zA-Z]/)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(" ") // Capitalize first letter of each word
-      .trim()
-  }
-
-  const user = {
-    name: generateDisplayName(username),
+  const [displayName, setDisplayName] = useState("")
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [profileData, setProfileData] = useState({
+    name: "",
     username: username,
     bio: "Software Developer | Photography Enthusiast | Coffee Lover",
     coverImage: "/placeholder.svg?height=300&width=1200",
     profileImage: username === "johndoe" ? "/placeholder-user.jpg" : "/placeholder.svg?height=100&width=100",
-    friends: Math.floor(Math.random() * 500) + 100,
-    followers: Math.floor(Math.random() * 1000) + 500,
+    followers: Math.floor(Math.random() * 500) + 100,
+    following: Math.floor(Math.random() * 1000) + 500,
     location: "San Francisco, CA",
     workplace: "Tech Innovations Inc.",
     education: "Stanford University",
     joined: "January 2018",
-  }
+  })
 
-  const [isFollowing, setIsFollowing] = useState(false)
+  // Find the correct user and set their information
+  useEffect(() => {
+    // First, check if this is a direct match with a username in our posts
+    // This handles cases like "sarahj", "alexj", etc.
+    let foundUser = false
+
+    // Check for exact username matches from our known usernames
+    const knownUsernames: Record<string, string> = {
+      sarahj: "Sarah Johnson",
+      alexj: "Alex Johnson",
+      emilys: "Emily Smith",
+      michaelb: "Michael Brown",
+      techinnovations: "Tech Innovations",
+      johndoe: "John Doe",
+    }
+
+    if (knownUsernames[username]) {
+      setDisplayName(knownUsernames[username])
+      setProfileData((prev) => ({
+        ...prev,
+        name: knownUsernames[username],
+      }))
+      foundUser = true
+    }
+
+    // If not found by username, check if it matches a name in globalUsers
+    if (!foundUser) {
+      // Check if this username matches any of our global users (by converting to lowercase username)
+      const matchedUser = globalUsers.find((user) => {
+        const userUsername = user.name.toLowerCase().replace(/\s+/g, "")
+        return userUsername === username.toLowerCase()
+      })
+
+      if (matchedUser) {
+        setDisplayName(matchedUser.name)
+        setProfileData((prev) => ({
+          ...prev,
+          name: matchedUser.name,
+          profileImage: matchedUser.avatar || prev.profileImage,
+        }))
+        foundUser = true
+      }
+    }
+
+    // Also check in globalSuggestions
+    if (!foundUser) {
+      const matchedSuggestion = globalSuggestions.find((user) => {
+        const userUsername = user.name.toLowerCase().replace(/\s+/g, "")
+        return userUsername === username.toLowerCase()
+      })
+
+      if (matchedSuggestion) {
+        setDisplayName(matchedSuggestion.name)
+        setProfileData((prev) => ({
+          ...prev,
+          name: matchedSuggestion.name,
+          profileImage: matchedSuggestion.avatar || prev.profileImage,
+        }))
+        foundUser = true
+      }
+    }
+
+    // If still not found, generate a display name from the username
+    if (!foundUser) {
+      const generatedName = username
+        .replace(/([a-z])([A-Z])/g, "$1 $2") // Insert space before capital letters
+        .split(/(?=[A-Z])/)
+        .join(" ") // Split by capital letters and join with space
+        .split(/[^a-zA-Z]/)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(" ") // Capitalize first letter of each word
+        .trim()
+
+      setDisplayName(generatedName)
+      setProfileData((prev) => ({
+        ...prev,
+        name: generatedName,
+      }))
+    }
+  }, [username])
+
+  // Check follow status whenever displayName changes
+  useEffect(() => {
+    if (displayName) {
+      // Check if this user is being followed
+      const followed = isUserFollowed(displayName)
+      setIsFollowing(followed)
+    }
+  }, [displayName])
+
+  // Periodically check follow status to keep it in sync
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (displayName) {
+        const followed = isUserFollowed(displayName)
+        setIsFollowing(followed)
+      }
+    }, 1000)
+
+    return () => clearInterval(intervalId)
+  }, [displayName])
+
+  const handleFollowToggle = () => {
+    const newFollowingState = !isFollowing
+    setIsFollowing(newFollowingState)
+
+    if (newFollowingState) {
+      // Follow user
+      followUser({
+        id: Date.now(), // Generate a unique ID if not already in the system
+        name: displayName,
+        mutualFollowers: Math.floor(Math.random() * 5) + 1,
+        isFollowing: true,
+        avatar: profileData.profileImage,
+      })
+
+      // Also update in globalSuggestions if present
+      const suggestionIndex = globalSuggestions.findIndex((s) => s.name.toLowerCase() === displayName.toLowerCase())
+
+      if (suggestionIndex !== -1) {
+        globalSuggestions[suggestionIndex].isFollowing = true
+      }
+
+      toast({
+        title: "Following",
+        description: `You are now following ${displayName}`,
+      })
+    } else {
+      // Unfollow user
+      unfollowUser(displayName)
+
+      toast({
+        title: "Unfollowed",
+        description: `You have unfollowed ${displayName}`,
+      })
+    }
+  }
 
   const handleAddPost = (content: string) => {
     toast({
@@ -850,55 +1259,37 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       <div className="pb-10 pt-16">
         <div className="relative mb-5">
           <div className="h-[300px] w-full overflow-hidden rounded-b-lg">
-            <img src={user.coverImage || "/placeholder.svg"} alt="Cover" className="w-full h-full object-cover" />
-            {username === "johndoe" && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-full"
-              >
-                <Camera className="h-5 w-5" />
-              </Button>
-            )}
+            <img
+              src={profileData.coverImage || "/placeholder.svg"}
+              alt="Cover"
+              className="w-full h-full object-cover"
+            />
           </div>
 
           <div className="container max-w-7xl px-4 md:px-6">
             <div className="flex flex-col md:flex-row gap-4 items-start md:items-end -mt-16 md:-mt-20 relative z-10">
               <div className="relative">
                 <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background">
-                  <AvatarImage src={user.profileImage} alt={user.name} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={profileData.profileImage} alt={displayName} />
+                  <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
                 </Avatar>
-                {username === "johndoe" && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute bottom-0 right-0 bg-black/50 hover:bg-black/70 text-white rounded-full"
-                  >
-                    <Camera className="h-4 w-4" />
-                  </Button>
-                )}
               </div>
 
               <div className="flex-1">
                 <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
                   <div>
-                    <h1 className="text-2xl md:text-3xl font-bold">{user.name}</h1>
-                    <p className="text-muted-foreground">{user.friends} friends</p>
+                    <h1 className="text-2xl md:text-3xl font-bold">{displayName}</h1>
+                    <p className="text-muted-foreground">{profileData.followers} followers</p>
                   </div>
 
                   <div className="flex gap-2">
-                    {username === "johndoe" ? (
-                      <Button className="gap-2">
-                        <Edit className="h-4 w-4" />
-                        <span>Edit Profile</span>
+                    {username !== "johndoe" && (
+                      <Button
+                        className={`gap-2 ${isFollowing ? "bg-muted text-foreground hover:bg-muted/80" : ""}`}
+                        onClick={handleFollowToggle}
+                      >
+                        {isFollowing ? "Following ✓" : "Follow"}
                       </Button>
-                    ) : (
-                      <>
-                        <Button className="gap-2" onClick={() => setIsFollowing(!isFollowing)}>
-                          {isFollowing ? "Following ✓" : "Follow"}
-                        </Button>
-                      </>
                     )}
                   </div>
                 </div>
@@ -913,7 +1304,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               <div className="bg-card rounded-lg border p-4">
                 <h2 className="font-semibold text-lg mb-3">Intro</h2>
                 <div className="space-y-3">
-                  <p>{user.bio}</p>
+                  <p>{profileData.bio}</p>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -929,7 +1320,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                       />
                     </svg>
-                    <span>Works at {user.workplace}</span>
+                    <span>Works at {profileData.workplace}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <svg
@@ -940,15 +1331,15 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                       stroke="currentColor"
                     >
                       <path d="M12 14l9-5-9-5-9 5 9 5z" />
-                      <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                      <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998a12.078 12.078 0 01.665-6.479L12 14z" />
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
+                        d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998a12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
                       />
                     </svg>
-                    <span>Studied at {user.education}</span>
+                    <span>Studied at {profileData.education}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <svg
@@ -971,7 +1362,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                       />
                     </svg>
-                    <span>Lives in {user.location}</span>
+                    <span>Lives in {profileData.location}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <svg
@@ -985,16 +1376,11 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                       />
                     </svg>
-                    <span>Joined {user.joined}</span>
+                    <span>Joined {profileData.joined}</span>
                   </div>
-                  {username === "johndoe" && (
-                    <Button variant="outline" className="w-full">
-                      Edit Details
-                    </Button>
-                  )}
                 </div>
               </div>
             </div>
@@ -1015,9 +1401,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   <Post
                     id="profile1"
                     author={{
-                      name: user.name,
-                      image: user.profileImage,
-                      username: user.username,
+                      name: displayName,
+                      image: profileData.profileImage,
+                      username: username,
                     }}
                     content="Just finished working on an exciting new project! Can't wait to share more details soon. #coding #newproject"
                     timestamp="3 days ago"
@@ -1029,9 +1415,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   <Post
                     id="profile2"
                     author={{
-                      name: user.name,
-                      image: user.profileImage,
-                      username: user.username,
+                      name: displayName,
+                      image: profileData.profileImage,
+                      username: username,
                     }}
                     content="Beautiful day for a hike! Nature always helps me clear my mind and get inspired."
                     image="/placeholder.svg?height=500&width=800&text=Hiking+Photo"
@@ -1047,7 +1433,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     <div className="space-y-6">
                       <div>
                         <h3 className="font-medium mb-2">Overview</h3>
-                        <p>{user.bio}</p>
+                        <p>{profileData.bio}</p>
                       </div>
                       <div>
                         <h3 className="font-medium mb-2">Work and Education</h3>
@@ -1068,7 +1454,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                               />
                             </svg>
                             <div>
-                              <div>Works at {user.workplace}</div>
+                              <div>Works at {profileData.workplace}</div>
                               <div className="text-sm text-muted-foreground">2020 - Present</div>
                             </div>
                           </div>
@@ -1081,16 +1467,16 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                               stroke="currentColor"
                             >
                               <path d="M12 14l9-5-9-5-9 5 9 5z" />
-                              <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                              <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998a12.078 12.078 0 01.665-6.479L12 14z" />
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
+                                d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998a12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
                               />
                             </svg>
                             <div>
-                              <div>Studied at {user.education}</div>
+                              <div>Studied at {profileData.education}</div>
                               <div className="text-sm text-muted-foreground">2014 - 2018</div>
                             </div>
                           </div>
@@ -1334,7 +1720,9 @@ export default function CreatePost({ onPostSubmit }: CreatePostProps) {
   }
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-6 mt-0">
+      {" "}
+      {/* Added mt-0 to ensure no top margin */}
       <CardHeader className="pb-3">
         <div className="flex gap-3">
           <Avatar>
@@ -1654,114 +2042,84 @@ export function LikeButton() {
 ```tsx file="components/navbar.tsx"
 "use client"
 
-import type React from "react"
-
 import Link from "next/link"
 import { Bell, Home, Menu, User, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useState } from "react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
-import { Search } from "lucide-react"
+import { usePathname } from "next/navigation"
 
 export default function Navbar() {
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const router = useRouter()
   const { toast } = useToast()
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    toast({
-      title: "Search Not Available",
-      description: "The search functionality is not implemented in this version.",
-      variant: "destructive",
-    })
-  }
+  const pathname = usePathname()
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b">
       <div className="container mx-auto max-w-7xl">
         <div className="flex h-16 items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center">
-              <div className="bg-primary text-white rounded-full w-10 h-10 flex items-center justify-center text-2xl font-bold">
-                f
-              </div>
-            </Link>
-            <div className="hidden md:flex relative">
-              <form onSubmit={handleSearch} className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search SocialConnect (Not Available)"
-                  className="w-[300px] pl-9"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </form>
+          <Link href="/" className="flex items-center">
+            <div className="bg-primary text-white rounded-full w-10 h-10 flex items-center justify-center text-2xl font-bold">
+              f
             </div>
-          </div>
+          </Link>
+
+          {/* Push navigation to the right */}
+          <div className="flex-1"></div>
 
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-foreground hover:text-primary transition-colors">
+            <Link
+              href="/"
+              className={`text-foreground hover:text-primary transition-colors ${pathname === "/" ? "text-primary" : ""}`}
+            >
               <Home className="h-6 w-6" />
             </Link>
-            <Link href="/friends" className="text-foreground hover:text-primary transition-colors">
+            <Link
+              href="/followers"
+              className={`text-foreground hover:text-primary transition-colors ${pathname === "/followers" ? "text-primary" : ""}`}
+            >
               <Users className="h-6 w-6" />
             </Link>
-            <Link href="/notifications" className="text-foreground hover:text-primary transition-colors">
+            <Link
+              href="/notifications"
+              className={`text-foreground hover:text-primary transition-colors ${pathname === "/notifications" ? "text-primary" : ""}`}
+            >
               <Bell className="h-6 w-6" />
             </Link>
           </nav>
 
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSearchOpen(!isSearchOpen)}>
-              <Search className="h-5 w-5" />
-            </Button>
-
+          <div className="flex items-center gap-4 ml-4">
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left">
+              <SheetContent side="right">
                 <nav className="flex flex-col gap-4 mt-8">
                   <Link
                     href="/"
-                    className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
+                    className={`flex items-center gap-2 text-foreground hover:text-primary transition-colors ${pathname === "/" ? "text-primary" : ""}`}
                   >
                     <Home className="h-5 w-5" />
                     <span>Home</span>
                   </Link>
                   <Link
-                    href="/friends"
-                    className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
+                    href="/followers"
+                    className={`flex items-center gap-2 text-foreground hover:text-primary transition-colors ${pathname === "/followers" ? "text-primary" : ""}`}
                   >
                     <Users className="h-5 w-5" />
-                    <span>Friends</span>
+                    <span>Followers</span>
                   </Link>
                   <Link
                     href="/notifications"
-                    className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
+                    className={`flex items-center gap-2 text-foreground hover:text-primary transition-colors ${pathname === "/notifications" ? "text-primary" : ""}`}
                   >
                     <Bell className="h-5 w-5" />
                     <span>Notifications</span>
                   </Link>
                   <Link
                     href="/profile/johndoe"
-                    className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
+                    className={`flex items-center gap-2 text-foreground hover:text-primary transition-colors ${pathname.startsWith("/profile") ? "text-primary" : ""}`}
                   >
                     <User className="h-5 w-5" />
                     <span>Profile</span>
@@ -1769,51 +2127,8 @@ export default function Navbar() {
                 </nav>
               </SheetContent>
             </Sheet>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Avatar>
-                    <AvatarImage src="/placeholder-user.jpg" alt="User" />
-                    <AvatarFallback>JD</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile/johndoe">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() =>
-                    toast({
-                      title: "Logged out",
-                      description: "You have been logged out successfully!",
-                    })
-                  }
-                >
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
-
-        {isSearchOpen && (
-          <div className="md:hidden p-4 border-t">
-            <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search SocialConnect (Not Available)"
-                className="w-full pl-9"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </form>
-          </div>
-        )}
       </div>
     </header>
   )
@@ -1825,15 +2140,12 @@ export default function Navbar() {
 ```tsx file="components/news-feed.tsx"
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import CreatePost from "@/components/create-post"
 import Post, { type PostProps } from "@/components/post"
+import { isUserFollowed } from "@/lib/shared-state"
 
-interface NewsFeedProps {
-  filter?: "friends" | "groups"
-}
-
-export default function NewsFeed({ filter }: NewsFeedProps) {
+export default function NewsFeed() {
   // Initial posts data
   const initialPosts: PostProps[] = [
     {
@@ -1873,18 +2185,61 @@ export default function NewsFeed({ filter }: NewsFeedProps) {
         username: "alexj",
       },
       content:
-        "Just got back from an amazing trip to Japan! The cherry blossoms were in full bloom and the food was incredible. Here's one of my favorite photos from the trip. Has anyone else visited Japan during cherry blossom season?",
-      image: "/placeholder.svg?height=500&width=800",
+        "Just got back from an amazing trip to Japan! The cherry blossoms were in full bloom and the food was incredible. Has anyone else visited Japan during cherry blossom season?",
+      // Removed the image from Alex Johnson's post
       timestamp: "1 day ago",
       likes: 87,
       comments: 15,
       shares: 4,
       isLiked: true,
     },
+    {
+      id: "4",
+      author: {
+        name: "Emily Smith",
+        image: "/placeholder.svg?height=40&width=40",
+        username: "emilys",
+      },
+      content:
+        "Just finished reading an amazing book on artificial intelligence. It's incredible how far we've come in this field! Anyone have recommendations for similar reads?",
+      timestamp: "3 hours ago",
+      likes: 56,
+      comments: 8,
+      shares: 2,
+    },
+    {
+      id: "5",
+      author: {
+        name: "Michael Brown",
+        image: "/placeholder.svg?height=40&width=40",
+        username: "michaelb",
+      },
+      content:
+        "Excited to share that I've just accepted a new position as Senior Developer at TechCorp! Looking forward to this new chapter in my career. #NewJob #TechCareers",
+      timestamp: "1 day ago",
+      likes: 112,
+      comments: 24,
+      shares: 5,
+    },
   ]
 
   // State to manage posts
   const [posts, setPosts] = useState<PostProps[]>(initialPosts)
+  const [filteredPosts, setFilteredPosts] = useState<PostProps[]>([])
+
+  // Effect to filter posts based on followed users
+  useEffect(() => {
+    // Filter posts to only show those from followed users
+    const postsFromFollowedUsers = posts.filter((post) => {
+      // Always include the current user's posts (johndoe)
+      if (post.author.username === "johndoe") return true
+
+      // Check if the post author is being followed
+      return isUserFollowed(post.author.name) || (post.author.username && isUserFollowed(post.author.username))
+    })
+
+    setFilteredPosts(postsFromFollowedUsers)
+  }, [posts])
 
   // Function to add a new post
   const addPost = (content: string) => {
@@ -1900,22 +2255,12 @@ export default function NewsFeed({ filter }: NewsFeedProps) {
       likes: 0,
       comments: 0,
       shares: 0,
+      // No image for new posts
     }
 
     // Add the new post to the beginning of the posts array
     setPosts([newPost, ...posts])
   }
-
-  // Filter posts based on the selected tab
-  const filteredPosts =
-    filter === "friends"
-      ? posts.filter(
-          (post) =>
-            post.author.username === "alexj" || post.author.username === "sarahj" || post.author.username === "johndoe",
-        )
-      : filter === "groups"
-        ? posts.filter((post) => post.author.username === "techinnovations")
-        : posts
 
   return (
     <div>
@@ -1928,7 +2273,9 @@ export default function NewsFeed({ filter }: NewsFeedProps) {
           ))}
         </div>
       ) : (
-        <div className="text-center py-10 text-muted-foreground">No posts to display in this section.</div>
+        <div className="text-center py-10 text-muted-foreground">
+          No posts from people you follow. Try following more accounts!
+        </div>
       )}
     </div>
   )
@@ -1940,75 +2287,93 @@ export default function NewsFeed({ filter }: NewsFeedProps) {
 ```tsx file="components/right-sidebar.tsx"
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, X } from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { ToastAction } from "@/components/ui/toast"
 import { useToast } from "@/hooks/use-toast"
+import { globalUsers, globalSuggestions, followUser } from "@/lib/shared-state"
 
 interface RightSidebarProps {
   className?: string
 }
 
-export default function RightSidebar({ className }: RightSidebarProps) {
-  const [friendRequests, setFriendRequests] = useState([
-    { id: 1, name: "Jessica Taylor", mutualFriends: 3, avatar: "/placeholder.svg?height=40&width=40", initials: "JT" },
-    { id: 2, name: "Robert Wilson", mutualFriends: 1, avatar: "/placeholder.svg?height=40&width=40", initials: "RW" },
-  ])
+interface Contact {
+  id: number
+  name: string
+  online: boolean
+  isFollowing: boolean
+  avatar?: string
+  mutualFollowers?: number
+}
 
-  const [activeTab, setActiveTab] = useState("contacts")
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [selectedRequest, setSelectedRequest] = useState<number | null>(null)
+export default function RightSidebar({ className }: RightSidebarProps) {
+  const [allFollowing, setAllFollowing] = useState<Contact[]>([])
+  const [suggestions, setSuggestions] = useState<Contact[]>([])
   const { toast } = useToast()
 
-  const handleAcceptFriend = (id: number) => {
-    setSelectedRequest(id)
-    setConfirmDialogOpen(true)
+  // Function to refresh data from global state
+  const refreshData = () => {
+    // Get all followed users from global state
+    const followingUsers = globalUsers
+      .filter((user) => user.isFollowing)
+      .map((user) => ({
+        id: user.id,
+        name: user.name,
+        online: Math.random() > 0.5, // Randomly set online status
+        isFollowing: true,
+        avatar: user.avatar,
+        mutualFollowers: user.mutualFollowers,
+      }))
+
+    // Get all suggestions from global state
+    const suggestionUsers = globalSuggestions
+      .filter((user) => !user.isFollowing)
+      .map((user) => ({
+        id: user.id,
+        name: user.name,
+        online: Math.random() > 0.5, // Randomly set online status
+        isFollowing: false,
+        avatar: user.avatar,
+        mutualFollowers: user.mutualFollowers,
+      }))
+
+    setAllFollowing(followingUsers)
+    setSuggestions(suggestionUsers)
   }
 
-  const handleDeleteFriend = (id: number) => {
-    setSelectedRequest(id)
-    setDeleteDialogOpen(true)
-  }
+  // Sync with global state on mount and when it changes
+  useEffect(() => {
+    refreshData()
 
-  const confirmAcceptFriend = () => {
-    if (selectedRequest !== null) {
-      const requestName = friendRequests.find((r) => r.id === selectedRequest)?.name || "User"
-      setFriendRequests(friendRequests.filter((request) => request.id !== selectedRequest))
-      setConfirmDialogOpen(false)
+    // Set up an interval to refresh data periodically
+    const intervalId = setInterval(refreshData, 2000)
 
-      toast({
-        title: "Friend request accepted",
-        description: `You are now friends with ${requestName}`,
-        action: <ToastAction altText="Dismiss">Dismiss</ToastAction>,
+    // Clean up interval on unmount
+    return () => clearInterval(intervalId)
+  }, [])
+
+  // Handle follow action
+  const handleFollow = (id: number) => {
+    const user = suggestions.find((s) => s.id === id)
+    if (user) {
+      // Update local state immediately
+      setSuggestions((prev) => prev.filter((s) => s.id !== id))
+      setAllFollowing((prev) => [...prev, { ...user, isFollowing: true }])
+
+      // Update global state
+      followUser({
+        id: user.id,
+        name: user.name,
+        mutualFollowers: user.mutualFollowers || 0,
+        isFollowing: true,
+        avatar: user.avatar,
       })
-    }
-  }
-
-  const confirmDeleteFriend = () => {
-    if (selectedRequest !== null) {
-      const requestName = friendRequests.find((r) => r.id === selectedRequest)?.name || "User"
-      setFriendRequests(friendRequests.filter((request) => request.id !== selectedRequest))
-      setDeleteDialogOpen(false)
 
       toast({
-        title: "Friend request deleted",
-        description: `Friend request from ${requestName} has been deleted`,
-        action: <ToastAction altText="Dismiss">Dismiss</ToastAction>,
+        title: "Following",
+        description: `You are now following ${user.name}`,
       })
     }
   }
@@ -2019,40 +2384,27 @@ export default function RightSidebar({ className }: RightSidebarProps) {
   }
 
   return (
-    <aside className={cn("py-4", className)}>
+    <aside className={cn("pt-0", className)}>
       <div className="space-y-6">
-        <Tabs defaultValue="contacts" onValueChange={setActiveTab}>
-          <TabsList className="w-full">
-            <TabsTrigger value="contacts" className="flex-1">
-              Contacts
-            </TabsTrigger>
-            <TabsTrigger value="requests" className="flex-1">
-              Friend Requests
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="contacts">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">Contacts</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  {[
-                    { name: "Alex Johnson", online: true },
-                    { name: "Emily Smith", online: true },
-                    { name: "Michael Brown", online: true },
-                    { name: "Sophia Williams", online: false },
-                    { name: "David Miller", online: false },
-                  ].map((contact, i) => (
+        <Card className="mt-0">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Following</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 py-2">
+            {allFollowing.length > 0 ? (
+              <div className="space-y-3">
+                {allFollowing.map((contact) => (
+                  <div key={contact.id}>
                     <Link
                       href={`/profile/${generateUsername(contact.name)}`}
-                      key={`contact-${i}`}
-                      className="flex items-center gap-3 rounded-md py-1 text-foreground hover:bg-muted transition-colors"
+                      className="flex items-center gap-3 rounded-md py-2 px-2 w-full text-foreground hover:bg-muted transition-colors"
                     >
                       <div className="relative">
                         <Avatar>
-                          <AvatarImage src="/placeholder.svg?height=40&width=40" alt={contact.name} />
+                          <AvatarImage
+                            src={contact.avatar || "/placeholder.svg?height=40&width=40"}
+                            alt={contact.name}
+                          />
                           <AvatarFallback>
                             {contact.name
                               .split(" ")
@@ -2066,102 +2418,57 @@ export default function RightSidebar({ className }: RightSidebarProps) {
                       </div>
                       <span>{contact.name}</span>
                     </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">You are not following any contacts yet</div>
+            )}
+          </CardContent>
+        </Card>
 
-          <TabsContent value="requests">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Friend Requests</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {friendRequests.length > 0 ? (
-                  friendRequests.map((request) => (
-                    <div key={request.id} className="flex items-start gap-3">
-                      <Link href={`/profile/${generateUsername(request.name)}`}>
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={request.avatar} alt={request.name} />
-                          <AvatarFallback>{request.initials}</AvatarFallback>
+        {/* Separate card for suggestions */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Suggestions</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 py-2">
+            {suggestions.length > 0 ? (
+              <div className="space-y-3">
+                {suggestions.map((contact) => (
+                  <div key={contact.id} className="flex items-center justify-between">
+                    <Link
+                      href={`/profile/${generateUsername(contact.name)}`}
+                      className="flex items-center gap-3 rounded-md py-2 px-2 text-foreground hover:bg-muted transition-colors"
+                    >
+                      <div className="relative">
+                        <Avatar>
+                          <AvatarImage
+                            src={contact.avatar || "/placeholder.svg?height=40&width=40"}
+                            alt={contact.name}
+                          />
+                          <AvatarFallback>
+                            {contact.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
                         </Avatar>
-                      </Link>
-                      <div className="flex-1">
-                        <div className="font-medium">
-                          <Link href={`/profile/${generateUsername(request.name)}`} className="hover:underline">
-                            {request.name}
-                          </Link>
-                        </div>
-                        <div className="text-xs text-muted-foreground">{request.mutualFriends} mutual friends</div>
-                        <div className="flex gap-2 mt-2">
-                          <Button size="sm" className="h-8" onClick={() => handleAcceptFriend(request.id)}>
-                            Confirm
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8"
-                            onClick={() => handleDeleteFriend(request.id)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
+                        {contact.online && (
+                          <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-1 ring-background"></span>
+                        )}
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">No friend requests to display</div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                      <span>{contact.name}</span>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">No suggestions available</div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Confirm Friend Request Dialog */}
-      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Friend Request</DialogTitle>
-            <DialogDescription>
-              {selectedRequest !== null &&
-                `Are you sure you want to accept the friend request from ${friendRequests.find((r) => r.id === selectedRequest)?.name}?`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex gap-2 sm:justify-end">
-            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={confirmAcceptFriend} className="gap-2">
-              <Check className="h-4 w-4" />
-              Confirm
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Friend Request Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Friend Request</DialogTitle>
-            <DialogDescription>
-              {selectedRequest !== null &&
-                `Are you sure you want to delete the friend request from ${friendRequests.find((r) => r.id === selectedRequest)?.name}?`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex gap-2 sm:justify-end">
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDeleteFriend} className="gap-2">
-              <X className="h-4 w-4" />
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </aside>
   )
 }
@@ -2224,6 +2531,232 @@ export function SimplePost({ author, content, timestamp }: SimplePostProps) {
 import { useToast as useToastOriginal } from "@/components/ui/use-toast"
 
 export const useToast = useToastOriginal
+
+
+```
+
+```ts file="lib/shared-state.ts"
+// Types
+export interface FollowRequest {
+  id: number
+  name: string
+  mutualFollowers: number
+  avatar: string
+  initials: string
+  deleted?: boolean
+}
+
+export interface User {
+  id: number
+  name: string
+  mutualFollowers: number
+  isFollowing: boolean
+  isRequested?: boolean
+  isDeleted?: boolean
+  avatar?: string
+  username?: string
+}
+
+// Initial follow requests data - now empty since we're removing requests
+const initialFollowRequests: FollowRequest[] = []
+
+// Global users state that will be shared across components
+export const globalUsers: User[] = [
+  {
+    id: 1,
+    name: "Sarah Johnson",
+    mutualFollowers: 5,
+    isFollowing: true,
+    isDeleted: false,
+    avatar: "/placeholder.svg?height=100&width=100",
+    username: "sarahj",
+  },
+  {
+    id: 2,
+    name: "Michael Brown",
+    mutualFollowers: 3,
+    isFollowing: true,
+    isDeleted: false,
+    avatar: "/placeholder.svg?height=100&width=100",
+    username: "michaelb",
+  },
+  {
+    id: 3,
+    name: "Emily Smith",
+    mutualFollowers: 7,
+    isFollowing: true,
+    isDeleted: false,
+    avatar: "/placeholder.svg?height=100&width=100",
+    username: "emilys",
+  },
+  // Add suggested profiles
+  {
+    id: 6,
+    name: "Robert Miller",
+    mutualFollowers: 4,
+    isFollowing: false,
+    isRequested: false,
+    isDeleted: false,
+    avatar: "/placeholder.svg?height=100&width=100",
+  },
+  {
+    id: 7,
+    name: "Jennifer Davis",
+    mutualFollowers: 2,
+    isFollowing: false,
+    isRequested: false,
+    isDeleted: false,
+    avatar: "/placeholder.svg?height=100&width=100",
+  },
+  {
+    id: 8,
+    name: "William Jones",
+    mutualFollowers: 6,
+    isFollowing: false,
+    isRequested: false,
+    isDeleted: false,
+    avatar: "/placeholder.svg?height=100&width=100",
+  },
+  {
+    id: 9,
+    name: "Alex Johnson",
+    mutualFollowers: 4,
+    isFollowing: true,
+    isDeleted: false,
+    avatar: "/placeholder.svg?height=100&width=100",
+    username: "alexj",
+  },
+  {
+    id: 10,
+    name: "Tech Innovations",
+    mutualFollowers: 0,
+    isFollowing: false,
+    isDeleted: false,
+    avatar: "/placeholder.svg?height=100&width=100",
+    username: "techinnovations",
+  },
+]
+
+// Additional global suggestions that will be shared across components
+export const globalSuggestions: User[] = [
+  {
+    id: 201,
+    name: "Sophia Williams",
+    mutualFollowers: 5,
+    isFollowing: false,
+    avatar: "/placeholder.svg?height=100&width=100",
+  },
+  {
+    id: 202,
+    name: "David Miller",
+    mutualFollowers: 2,
+    isFollowing: false,
+    avatar: "/placeholder.svg?height=100&width=100",
+  },
+  {
+    id: 203,
+    name: "Olivia Martinez",
+    mutualFollowers: 4,
+    isFollowing: false,
+    avatar: "/placeholder.svg?height=100&width=100",
+  },
+  {
+    id: 204,
+    name: "James Wilson",
+    mutualFollowers: 1,
+    isFollowing: false,
+    avatar: "/placeholder.svg?height=100&width=100",
+  },
+]
+
+// Helper function to check if a user is being followed
+export function isUserFollowed(name: string): boolean {
+  // Check by exact name
+  const followedByName = globalUsers.some((user) => user.name.toLowerCase() === name.toLowerCase() && user.isFollowing)
+
+  if (followedByName) return true
+
+  // Check by username
+  const followedByUsername = globalUsers.some(
+    (user) => user.username && user.username.toLowerCase() === name.toLowerCase() && user.isFollowing,
+  )
+
+  return followedByUsername
+}
+
+// Helper function to follow a user
+export function followUser(user: User): void {
+  // Check if user already exists in globalUsers by name
+  const existingUserByName = globalUsers.find((u) => u.name.toLowerCase() === user.name.toLowerCase())
+
+  // Check if user already exists in globalUsers by username
+  const existingUserByUsername = user.username
+    ? globalUsers.find((u) => u.username && u.username.toLowerCase() === user.username.toLowerCase())
+    : null
+
+  const existingUser = existingUserByName || existingUserByUsername
+
+  if (existingUser) {
+    // Update existing user
+    const index = globalUsers.findIndex((u) => u.id === existingUser.id)
+    globalUsers[index] = { ...globalUsers[index], isFollowing: true }
+  } else {
+    // Add new user to global users
+    globalUsers.push({
+      ...user,
+      isFollowing: true,
+    })
+  }
+
+  // Update in suggestions if present
+  const suggestionIndex = globalSuggestions.findIndex((s) => s.name.toLowerCase() === user.name.toLowerCase())
+
+  if (suggestionIndex !== -1) {
+    globalSuggestions[suggestionIndex] = {
+      ...globalSuggestions[suggestionIndex],
+      isFollowing: true,
+    }
+  }
+}
+
+// Helper function to unfollow a user
+export function unfollowUser(name: string): void {
+  // Try to find by name
+  let index = globalUsers.findIndex((u) => u.name.toLowerCase() === name.toLowerCase())
+
+  // If not found by name, try by username
+  if (index === -1) {
+    index = globalUsers.findIndex((u) => u.username && u.username.toLowerCase() === name.toLowerCase())
+  }
+
+  if (index !== -1) {
+    globalUsers[index] = { ...globalUsers[index], isFollowing: false }
+  }
+
+  // Update in suggestions if present
+  const suggestionIndex = globalSuggestions.findIndex((s) => s.name.toLowerCase() === name.toLowerCase())
+
+  if (suggestionIndex !== -1) {
+    globalSuggestions[suggestionIndex] = {
+      ...globalSuggestions[suggestionIndex],
+      isFollowing: false,
+    }
+  }
+}
+
+// Shared state
+export const sharedState = {
+  followRequests: [...initialFollowRequests],
+
+  // Methods to update the state
+  updateFollowRequests(requests: FollowRequest[]) {
+    this.followRequests = requests
+  },
+
+  getActiveRequests() {
+    return this.followRequests.filter((request) => !request.deleted)
+  },
+}
 
 
 ```
