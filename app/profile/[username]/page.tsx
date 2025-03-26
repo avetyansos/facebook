@@ -15,6 +15,7 @@ import {
   followUser,
   unfollowUser,
   getFilteredPosts,
+  addPost,
 } from "@/lib/shared-state"
 import type { PostProps } from "@/types"
 
@@ -198,6 +199,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   }
 
   const handleAddPost = (content: string) => {
+    // Add post to global state
+    const newPost = addPost(content)
+
+    // Update local state to include the new post
+    setProfilePosts((prev) => [newPost, ...prev])
+
     toast({
       title: "Post created",
       description: "Your post has been published successfully!",

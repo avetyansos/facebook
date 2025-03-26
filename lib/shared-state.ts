@@ -562,3 +562,12 @@ export const sharedState = {
   },
 }
 
+// Add this new function to refresh posts periodically:
+export function setupPostsRefreshInterval(callback: () => void, interval = 2000): () => void {
+  const intervalId = setInterval(() => {
+    callback()
+  }, interval)
+
+  return () => clearInterval(intervalId)
+}
+
