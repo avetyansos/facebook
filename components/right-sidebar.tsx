@@ -149,10 +149,10 @@ export default function RightSidebar({ className }: RightSidebarProps) {
             {suggestions.length > 0 ? (
               <div className="space-y-3">
                 {suggestions.map((contact) => (
-                  <div key={contact.id} className="flex items-center justify-between">
+                  <div key={contact.id}>
                     <Link
                       href={`/profile/${generateUsername(contact.name)}`}
-                      className="flex items-center gap-3 rounded-md py-2 px-2 text-foreground hover:bg-muted transition-colors"
+                      className="flex items-center gap-3 rounded-md py-2 px-2 w-full text-foreground hover:bg-muted transition-colors"
                     >
                       <div className="relative">
                         <Avatar>

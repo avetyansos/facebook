@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Globe, MessageCircle, ThumbsUp } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
+import { getComments, addComment, togglePostLike, getPostLikeStatus } from "@/lib/shared-state"
 
 export interface PostProps {
   id: string
@@ -38,37 +39,45 @@ export default function Post({
   shares,
   isLiked = false,
 }: PostProps) {
-  const [liked, setLiked] = useState(isLiked)
-  const [likeCount, setLikeCount] = useState(likes)
+  // Get initial like status from global state
+  const initialLikeStatus = getPostLikeStatus(id)
+  const [liked, setLiked] = useState(initialLikeStatus.isLiked)
+  const [likeCount, setLikeCount] = useState(initialLikeStatus.likeCount)
   const [showComments, setShowComments] = useState(false)
   const [commentText, setCommentText] = useState("")
-  const [commentsList, setCommentsList] = useState([
-    { id: "comment1", name: "Emily Smith", text: "Great post! Thanks for sharing this.", time: "2h" },
-    {
-      id: "comment2",
-      name: "Michael Brown",
-      text: "I completely agree with this! Looking forward to more content like this.",
-      time: "1h",
-    },
-  ])
+  const [commentsList, setCommentsList] = useState(getComments(id))
   const { toast } = useToast()
 
+  // Update comments list when global state changes
+  useEffect(() => {
+    setCommentsList(getComments(id))
+  }, [id])
+
+  // Update like status when global state changes
+  useEffect(() => {
+    const likeStatus = getPostLikeStatus(id)
+    setLiked(likeStatus.isLiked)
+    setLikeCount(likeStatus.likeCount)
+  }, [id])
+
   const handleLike = () => {
-    setLiked(!liked)
-    setLikeCount((prev) => (liked ? prev - 1 : prev + 1))
+    // Update global state
+    const newLikedState = togglePostLike(id)
+
+    // Update local state
+    const likeStatus = getPostLikeStatus(id)
+    setLiked(likeStatus.isLiked)
+    setLikeCount(likeStatus.likeCount)
   }
 
   const handleComment = (e: React.FormEvent) => {
     e.preventDefault()
     if (commentText.trim()) {
-      const newComment = {
-        id: `comment-${Date.now()}`,
-        name: "John Doe",
-        text: commentText,
-        time: "Just now",
-      }
-      // Add new comment to the beginning of the array
-      setCommentsList([newComment, ...commentsList])
+      // Add comment to global state
+      addComment(id, commentText)
+
+      // Update local state
+      setCommentsList(getComments(id))
       setCommentText("")
     }
   }
@@ -163,15 +172,15 @@ export default function Post({
               {commentsList.map((comment) => (
                 <div key={comment.id} className="flex gap-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="/placeholder.svg?height=32&width=32" alt={comment.name} />
+                    <AvatarImage src="/placeholder.svg?height=32&width=32" alt={comment.author} />
                     <AvatarFallback>
-                      {comment.name.charAt(0)}
-                      {comment.name.split(" ")[1]?.charAt(0) || ""}
+                      {comment.author.charAt(0)}
+                      {comment.author.split(" ")[1]?.charAt(0) || ""}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <div className="bg-muted rounded-lg px-3 py-2">
-                      <div className="font-medium text-sm">{comment.name}</div>
+                      <div className="font-medium text-sm">{comment.author}</div>
                       <p className="text-sm">{comment.text}</p>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1 px-3">

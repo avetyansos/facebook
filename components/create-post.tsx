@@ -36,8 +36,6 @@ export default function CreatePost({ onPostSubmit }: CreatePostProps) {
 
   return (
     <Card className="mb-6 mt-0">
-      {" "}
-      {/* Added mt-0 to ensure no top margin */}
       <CardHeader className="pb-3">
         <div className="flex gap-3">
           <Avatar>

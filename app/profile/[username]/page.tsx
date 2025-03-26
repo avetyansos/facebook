@@ -8,7 +8,15 @@ import Post from "@/components/post"
 import CreatePost from "@/components/create-post"
 import Navbar from "@/components/navbar"
 import { useToast } from "@/hooks/use-toast"
-import { globalUsers, globalSuggestions, isUserFollowed, followUser, unfollowUser } from "@/lib/shared-state"
+import {
+  globalUsers,
+  globalSuggestions,
+  isUserFollowed,
+  followUser,
+  unfollowUser,
+  getFilteredPosts,
+} from "@/lib/shared-state"
+import type { PostProps } from "@/types"
 
 interface ProfilePageProps {
   params: {
@@ -34,6 +42,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     education: "Stanford University",
     joined: "January 2018",
   })
+  const [profilePosts, setProfilePosts] = useState<PostProps[]>([])
 
   // Find the correct user and set their information
   useEffect(() => {
@@ -136,6 +145,21 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
     return () => clearInterval(intervalId)
   }, [displayName])
+
+  // Load posts for this profile
+  useEffect(() => {
+    if (displayName) {
+      // Get all posts from global state
+      const allPosts = getFilteredPosts()
+
+      // Filter posts to only show those from this profile
+      const userPosts = allPosts.filter(
+        (post) => post.author.username === username || post.author.name.toLowerCase() === displayName.toLowerCase(),
+      )
+
+      setProfilePosts(userPosts)
+    }
+  }, [displayName, username])
 
   const handleFollowToggle = () => {
     const newFollowingState = !isFollowing
@@ -325,34 +349,20 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                 <TabsContent value="posts" className="mt-6">
                   {username === "johndoe" && <CreatePost onPostSubmit={handleAddPost} />}
 
-                  <Post
-                    id="profile1"
-                    author={{
-                      name: displayName,
-                      image: profileData.profileImage,
-                      username: username,
-                    }}
-                    content="Just finished working on an exciting new project! Can't wait to share more details soon. #coding #newproject"
-                    timestamp="3 days ago"
-                    likes={42}
-                    comments={8}
-                    shares={3}
-                  />
-
-                  <Post
-                    id="profile2"
-                    author={{
-                      name: displayName,
-                      image: profileData.profileImage,
-                      username: username,
-                    }}
-                    content="Beautiful day for a hike! Nature always helps me clear my mind and get inspired."
-                    image="/placeholder.svg?height=500&width=800&text=Hiking+Photo"
-                    timestamp="1 week ago"
-                    likes={78}
-                    comments={12}
-                    shares={5}
-                  />
+                  {profilePosts.length > 0 ? (
+                    <div className="space-y-4">
+                      {profilePosts.map((post) => (
+                        <Post
+                          key={post.id}
+                          {...post}
+                          // Override the image prop to remove images on profile page
+                          image={undefined}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 text-muted-foreground">No posts to display</div>
+                  )}
                 </TabsContent>
                 <TabsContent value="about">
                   <div className="bg-card rounded-lg border p-6">

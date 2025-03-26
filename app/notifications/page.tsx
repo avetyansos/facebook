@@ -1,70 +1,38 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { X } from "lucide-react"
 import Navbar from "@/components/navbar"
-
-interface Notification {
-  id: number
-  user: string
-  content: string
-  time: string
-  read: boolean
-}
+import {
+  getActiveNotifications,
+  markNotificationAsRead,
+  removeNotification,
+  markAllNotificationsAsRead,
+} from "@/lib/shared-state"
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: 1,
-      user: "Sarah Johnson",
-      content: "liked your post.",
-      time: "1 hour ago",
-      read: false,
-    },
-    {
-      id: 2,
-      user: "Michael Brown",
-      content: 'commented on your photo: "Great shot!"',
-      time: "2 hours ago",
-      read: false,
-    },
-    {
-      id: 3,
-      user: "Emily Smith",
-      content: "sent you a friend request.",
-      time: "3 hours ago",
-      read: false,
-    },
-    {
-      id: 4,
-      user: "David Wilson",
-      content: "shared your post.",
-      time: "4 hours ago",
-      read: true,
-    },
-    {
-      id: 5,
-      user: "Jessica Taylor",
-      content: "mentioned you in a comment.",
-      time: "5 hours ago",
-      read: true,
-    },
-  ])
+  const [notifications, setNotifications] = useState(getActiveNotifications())
 
-  const markAsRead = (id: number) => {
-    setNotifications(
-      notifications.map((notification) => (notification.id === id ? { ...notification, read: true } : notification)),
-    )
+  // Update notifications when global state changes
+  useEffect(() => {
+    setNotifications(getActiveNotifications())
+  }, [])
+
+  const handleMarkAsRead = (id: number) => {
+    markNotificationAsRead(id)
+    setNotifications(getActiveNotifications())
   }
 
-  const removeNotification = (id: number) => {
-    setNotifications(notifications.filter((notification) => notification.id !== id))
+  const handleRemoveNotification = (id: number) => {
+    removeNotification(id)
+    setNotifications(getActiveNotifications())
   }
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map((notification) => ({ ...notification, read: true })))
+  const handleMarkAllAsRead = () => {
+    markAllNotificationsAsRead()
+    setNotifications(getActiveNotifications())
   }
 
   return (
@@ -74,7 +42,7 @@ export default function NotificationsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Notifications</CardTitle>
-            <Button variant="outline" onClick={markAllAsRead}>
+            <Button variant="outline" onClick={handleMarkAllAsRead}>
               Mark all as read
             </Button>
           </CardHeader>
@@ -102,7 +70,7 @@ export default function NotificationsPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => markAsRead(notification.id)}
+                            onClick={() => handleMarkAsRead(notification.id)}
                             title="Mark as read"
                           >
                             <div className="h-2 w-2 rounded-full bg-primary"></div>
@@ -112,7 +80,7 @@ export default function NotificationsPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => removeNotification(notification.id)}
+                          onClick={() => handleRemoveNotification(notification.id)}
                           title="Remove notification"
                         >
                           <X className="h-4 w-4" />
